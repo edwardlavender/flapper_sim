@@ -36,9 +36,12 @@ raster::plot(gebco)
 # centre <- locator()
 centre <- sp::SpatialPoints(matrix(c(709411.6, 6258554), nrow = 1),
                             proj4string = raster::crs(gebco))
-area <- rgeos::gBuffer(centre, width = 2000, capStyle = "SQUARE")
+area <- rgeos::gBuffer(centre, width = 2000, capStyle = "SQUARE") # width is radius, diameter is width *2, etc.
 raster::crs(area) <- raster::crs(gebco)
 raster::lines(area)
+area_size <- raster::area(area) # m2
+area_size_km <- area_size * 1/(1000^2)
+area_size_km
 
 # crop_from_click(gebco)
 ext <- raster::extent(area)
@@ -138,6 +141,45 @@ dat_sim_moorings <- lapply(dat_sim_arrays, function(array){
   )
   return(moorings)
 })
+
+#### Save tidy table of array properties
+dat_sim_array_info_tidy <- dat_sim_array_info
+# Add area coverage assuming a detection radius
+dat_sim_array_info_tidy$cov_m2 <- NA
+dat_sim_array_info_tidy$cov_pc  <- NA
+for(i in 1:length(dat_sim_arrays)){
+  array <- dat_sim_arrays[[i]]
+  dat_sim_array_info_tidy$n_receivers[i] <- length(array$array$xy)
+  dat_sim_array_info_tidy$cov_m2[i] <-
+    get_detection_area_sum(array$array$xy, detection_range = 300, boundaries = ext)
+  dat_sim_array_info_tidy$cov_pc[i] <- (dat_sim_array_info_tidy$cov_m2[i]/area_size_km) * 100
+}
+# Tidy existing columns
+dat_sim_array_info_tidy$arrangement <- factor(dat_sim_array_info_tidy$arrangement,
+                                              levels = c("regular", "random", "clustered"),
+                                              labels = c("Regular", "Random", "Clustered"))
+dat_sim_array_info_tidy <-
+  dat_sim_array_info_tidy %>%
+  dplyr::arrange(arrangement, n_receivers, clustering, n_clusters) %>%
+  dplyr::mutate(ID = 1:dplyr::n()) %>%
+  dplyr::select(ID = ID,
+                Arrangement = arrangement,
+                `Receivers (N)` = n_receivers,
+                `Clusters (Pr)` = clustering,
+                `Clusters (N)` = n_clusters,
+                `Coverage(m2)` = cov_m2,
+                `Coverage(%)` = cov_pc)
+# Round area coverage estimates
+dat_sim_array_info_tidy$`Coverage(m2)` <-
+  prettyGraphics::add_lagging_point_zero(
+    round(dat_sim_array_info_tidy$`Coverage(m2)`, 2), 2)
+dat_sim_array_info_tidy$`Coverage(%)` <-
+  prettyGraphics::add_lagging_point_zero(
+  round(dat_sim_array_info_tidy$`Coverage(%)`, 2), 2)
+# Save tidy table
+ncol(dat_sim_array_info_tidy)
+write.table(dat_sim_array_info_tidy, "./fig/dat_sim_array_info_tidy.txt", na = "",
+            quote = FALSE, row.names = FALSE)
 
 
 ######################################
