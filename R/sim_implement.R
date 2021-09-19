@@ -1,6 +1,6 @@
 ######################################
 ######################################
-#### sim_data.R
+#### sim_implement.R
 
 #### This code
 # Implements the sim_workhorse script for all movement paths/array designs.
