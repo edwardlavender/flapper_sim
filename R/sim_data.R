@@ -192,15 +192,16 @@ dat_sim_mvt_info <- list("1" = list())
 #### Path sim (1)
 
 ## Define movement model
+mob_sim <- 500
 calc_mpr <- function(distance,...) {
   pr <- stats::plogis(7.5 + distance * -0.025)
-  pr[distance > 500] <- 0
+  pr[distance > mob_sim] <- 0
   return(pr)
 }
-plot(1:1000, calc_mpr(1:1000))
+plot(1:mob_sim, calc_mpr(1:mob_sim), ylim = c(0, 1))
 
 ## Simulate step lengths from movement model
-steps <- data.frame(distance = seq(0, 250, length.out = 1e4))
+steps <- data.frame(distance = seq(0, mob_sim, length.out = 1e4))
 steps$pr <- calc_mpr(steps$distance)
 sim_step_every_2_mins <- function(...,data = steps, size = 1) {
   sample(x = data$distance, size = size, prob = data$pr)
@@ -310,11 +311,12 @@ if(simulate_archival){
 #### Acoustic time series
 
 #### Define detection probability function based on distance
+detection_range <- 300
 calc_dpr <-
   function(x){
-    ifelse(x <= 300, stats::plogis(3 + -0.03 * x), 0)
+    ifelse(x <= detection_range, stats::plogis(3 + -0.03 * x), 0)
   }
-plot(1:1000, calc_dpr(1:1000), type = "l")
+plot(1:detection_range, calc_dpr(1:detection_range), type = "l")
 
 #### Simulate acoustic time series for each path and array design
 simulate_detections  <- FALSE
@@ -350,8 +352,7 @@ if(simulate_detections){
     return(dat_sim_detections_by_array)
   })
   print(summary(dat_sim_detections_by_path))
-  dat_sim_detections_by_path <- saveRDS(dat_sim_detections_by_path,
-                                        "./data/movement/dat_sim_detections_by_path.rds")
+  saveRDS(dat_sim_detections_by_path, "./data/movement/dat_sim_detections_by_path.rds")
 
 } else{
   dat_sim_detections_by_path <- readRDS("./data/movement/dat_sim_detections_by_path.rds")
@@ -375,6 +376,7 @@ dat_sim_paths_ud <- lapply(dat_sim_paths, function(dat_sim_path){
   dat_sim_path_ud <- raster::raster(dat_sim_path_ud[[1]])
   # Plot UD for simulated data
   raster::plot(dat_sim_path_ud)
+  prettyGraphics::add_sp_path(dat_sim_path$xy_mat, length = 0.01, lwd = 0.1)
   return(dat_sim_path_ud)
 })
 
@@ -390,17 +392,17 @@ dat_sim_paths_ud <- lapply(dat_sim_paths, function(dat_sim_path){
 step             <- 120
 det_rng          <- 300      # as defined previously because on the scale of the grid
 clock_drift      <- 5
-mob_on_grid      <- 250 + 75 # mobility is higher than simulated when expressed at the resolution of the grid
+mob_on_grid      <- mob_sim + 75 # mobility is higher than simulated when expressed at the resolution of the grid
 
 #### Define movement model over grid
 # [with a relaxation of the maximum mobility to allow for the effects of grid resolution]
 calc_mpr_on_grid <- function(distance,...) {
   pr <- stats::plogis(7.5 + distance * -0.025)
-  pr[distance > 575] <- 0 # relaxation of maximum mobility
+  pr[distance > mob_on_grid] <- 0 # relaxation of maximum mobility
   return(pr)
 }
-plot(1:500, calc_mpr_on_grid(1:500), type = "l")
-lines(1:500, calc_mpr(1:500), col = "red")
+plot(1:mob_on_grid, calc_mpr_on_grid(1:mob_on_grid), type = "l")
+lines(1:mob_on_grid, calc_mpr(1:mob_on_grid), col = "red")
 
 #### Prepare movement time series
 ## Examine frequency of detections
