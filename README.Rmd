@@ -39,9 +39,13 @@ Simulations and analyses are written in `R` and organised as an `R Project`. For
         * For each movement path and array design, observations arising from movement---namely, detections at receivers---are simulated via `flapper::sim_detections()`;
         * A directory system within `data` (see below) in which to store the results from the analyses of these simulated data is also set up;
         
+    * `sim_analyse` analyses the simulated movement path(s) and methods for examining emergent patterns of space use. 
+        
     * `sim_workhorse` provides methods for implementing the `flapper` family of algorithms to simulated data.
     
     * `sim_implement` is a wrapper that, for each simulated movement path and array design, implements `sim_workhorse` to generate outputs. 
+    
+
 
 2. `data` contains data for the project. 
 

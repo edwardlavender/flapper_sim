@@ -56,6 +56,9 @@ used on a few occasions.
             store the results from the analyses of these simulated data
             is also set up;
     
+      - `sim_analyse` analyses the simulated movement path(s) and
+        methods for examining emergent patterns of space use.
+    
       - `sim_workhorse` provides methods for implementing the `flapper`
         family of algorithms to simulated data.
     
