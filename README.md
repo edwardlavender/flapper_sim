@@ -65,6 +65,9 @@ used on a few occasions.
       - `sim_implement` is a wrapper that, for each simulated movement
         path and array design, implements `sim_workhorse` to generate
         outputs.
+    
+      - `sim_illustrate` illustrates the main outputs of the flapper
+        family of algorithms.
 
 2.  `data` contains data for the project.
 
