@@ -16,7 +16,7 @@
 #### Path and array details
 
 #### Get array/path details
-# path_id  <- 1; array_id <- 7
+# path_id  <- 1; array_id <- 12
 con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/")
 
 #### Get associated data
@@ -75,7 +75,7 @@ if(nrow(out_coa) >= 5){
 #### Flapper algorithm: array-specific set up
 
 #### Define acoustic centroids
-make_detection_centroids <- TRUE
+make_detection_centroids <- FALSE
 if(make_detection_centroids){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, data.frame(receiver_id = 1:length(rxy)))
@@ -91,7 +91,7 @@ if(make_detection_centroids){
 }
 
 #### Detection centroid overlaps
-make_detection_centriods_overlaps <- TRUE
+make_detection_centriods_overlaps <- FALSE
 if(make_detection_centriods_overlaps){
   centroids_dets <- get_detection_centroids(xy = array$array$xy,
                                             detection_range = det_rng,
@@ -107,7 +107,7 @@ if(make_detection_centriods_overlaps){
 }
 
 #### Define detection kernels
-make_detection_kernels <- TRUE
+make_detection_kernels <- FALSE
 if(make_detection_kernels){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, moorings)
@@ -156,7 +156,7 @@ if(nrow(path$xy_mat_on_grid_within_acoustics) >= 5){
 #### Implement AC and ACDC algorithms
 
 #### Implement AC algorithm
-run_ac <- TRUE
+run_ac <- FALSE
 if(run_ac){
   out_ac <- ac(acoustics = acoustics,
                step = step,
@@ -175,7 +175,7 @@ if(run_ac){
 }
 
 #### Implement ACDC algorithm
-run_acdc <- TRUE
+run_acdc <- FALSE
 if(run_acdc){
   out_acdc <- acdc(acoustics = acoustics,
                    archival = archival,
@@ -227,7 +227,7 @@ par(pp)
 out_ac_record <- pf_setup_record(paste0(con_root, "ac/record/"))
 
 ## Implement algorithm [5 minutes]
-run_acpf <- TRUE
+run_acpf <- FALSE
 if(run_acpf){
   out_acpf <- pf(record = out_ac_record,
                  calc_movement_pr = calc_mpr_on_grid,
@@ -246,7 +246,7 @@ if(run_acpf){
 ## Define record
 out_acdc_record <- pf_setup_record(paste0(con_root, "acdc/record/"))
 ## Implement algorithm
-run_acdcpf <- TRUE
+run_acdcpf <- FALSE
 if(run_acdcpf){
   out_acdcpf <- pf(record = out_acdc_record,
                    calc_movement_pr = calc_mpr_on_grid, # note relaxed movement model for grid
@@ -273,7 +273,7 @@ par(pp)
 
 #### Assemble particle histories for connected cell pairs
 ## ACPF
-run_pf_simplify <- TRUE
+run_pf_simplify <- FALSE
 if(run_pf_simplify){
   out_acpf_pairs <- pf_simplify(out_acpf,
                               cl = NULL,
@@ -284,7 +284,7 @@ if(run_pf_simplify){
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
 }
 ## ACDCPF
-run_pf_simplify <- TRUE
+run_pf_simplify <- FALSE
 if(run_pf_simplify){
   out_acdcpf_pairs <- pf_simplify(out_acdcpf,
                                   cl = NULL,
@@ -301,7 +301,7 @@ out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = max, return
 
 #### Build a sample of paths
 # To assemble a paths with max_n_copies = 5L and max_n_paths = 10000L this takes ~ 1 minute
-build_paths <- TRUE
+build_paths <- FALSE
 if(build_paths){
   ## ACPF paths
   set.seed(seed)
