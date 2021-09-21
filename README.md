@@ -66,8 +66,12 @@ used on a few occasions.
         path and array design, implements `sim_workhorse` to generate
         outputs.
     
-      - `sim_illustrate` illustrates the main outputs of the flapper
+      - `sim_illustrate` illustrates the main outputs of the `flapper`
         family of algorithms.
+    
+      - `sim_synthesise` synthesises the main results of applying the
+        `flapper` family of algorithms to reconstruct patterns of space
+        use for different array designs.
 
 2.  `data` contains data for the project.
 
