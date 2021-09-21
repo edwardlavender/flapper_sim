@@ -72,6 +72,8 @@ used on a few occasions.
       - `sim_synthesise` synthesises the main results of applying the
         `flapper` family of algorithms to reconstruct patterns of space
         use for different array designs.
+    
+      - `sim_wall_time` calculates the wall time for all simulations.
 
 2.  `data` contains data for the project.
 
@@ -85,21 +87,24 @@ this repository.
 1.  Run `sim_data` to simulate datasets, customising the array designs
     and movement path parameters as necessary\*.
 
-2.  Implement algorithms for a specific movement path and array
+2.  Examine methods for inferring patterns of space use for the
+    simulated movement path(s) via `sim_analyse`.
+
+3.  Implement algorithms for a specific movement path and array
     combination via `sim_workhorse` or for all movement paths and array
     designs via `sim_implement`\*. Note that for the former, the
     movement path and array ID need to be specified at the top of the
     script.
 
-3.  Examine outputs in `data` and `fig`, such as the example figure
+4.  Examine and synthesise outputs via `sim_illustrate`,
+    `sim_synthesise` and `sim_wall_time`.
+
+5.  Examine outputs in `data` and `fig`, such as the example figure
     below.
 
-<!-- end list -->
-
-  - For the first implementation of this project, ensure that all
-    sections that create data are set to TRUE rather than FALSE (in
-    which case previously created files are loaded and used for
-    analysis).
+\*For the first implementation of this project, ensure that all sections
+that create data are set to TRUE rather than FALSE (in which case
+previously created files are loaded and used for analysis).
 
 <img src="README_img.png"/>
 
