@@ -129,7 +129,8 @@ if(make_detection_kernels){
 #### Prepare movement data
 acoustics$receiver_id <- as.integer(as.character(acoustics$receiver_id))
 archival$index <- 1:nrow(archival)
-archival <- archival[archival$timestamp >= min(acoustics$timestamp), ]
+archival <- archival[archival$timestamp >= min(acoustics$timestamp) &
+                       archival$timestamp <= max(acoustics$timestamp), ]
 
 #### Focus on parts of paths that detections enable us to resolve
 path$xy_mat_on_grid_within_acoustics <- path$xy_mat_on_grid[archival$index, ]
