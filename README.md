@@ -1,4 +1,4 @@
-Simulation-based demonstration and evaluation of the `flapper` family of
+Simulation-based illustration and evaluation of the `flapper` family of
 algorithms
 ================
 Edward Lavender<sup>1,2\*</sup>
@@ -6,9 +6,9 @@ Edward Lavender<sup>1,2\*</sup>
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 <sup>1</sup> Scottish Oceans Institute, University of St Andrews,
-University of St Andrews, Scotland  
+Scotland  
 <sup>2</sup> Centre for Research into Ecological and Environmental
-Modelling University of St Andrews, Scotland
+Modelling, University of St Andrews, Scotland
 
 <sup>\*</sup> This repository is maintained by Edward Lavender
 (<el72@st-andrews.ac.uk>).
@@ -19,14 +19,20 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 
 ## Introduction
 
-The `flapper` family of algorithms is a new suite of mechanistic
-approaches designed to reconstruct patterns of space use and movement
-from discrete detections in passive acoustic telemetry arrays. This
-repository illustrates the applications of these algorithms using
-simulated datasets. The performance of alternative methods is compared
-in terms of how well they recover simulated patterns of space use under
-different circumstances (e.g., passive acoustic telemetry array
-designs).
+The `flapper` family of algorithms is a suite of mechanistic approaches
+designed to reconstruct fine-scale movement paths and emergent patterns
+of space use from discrete detections in passive acoustic telemetry
+arrays. This repository illustrates applications of these algorithms
+using simulated datasets. The performance of alternative methods is
+compared in terms of how well they recover simulated patterns of space
+use under different circumstances (e.g., passive acoustic telemetry
+array designs).
+
+<img src="README_banner.png"/>
+
+*Figure 1. Example outputs of the `flapper_sim` project showing a
+simulated array and movement path alongside patterns of space use
+reconstructed by different algorithms.*
 
 ## Prerequisites
 
@@ -43,63 +49,63 @@ used on a few occasions.
 
 ## Structure
 
-1.  `R` contains scripts for data simulation and analysis.
+1.  `R/` contains scripts for data simulation and analysis.
     
-      - `sim_data` simulates data for analysis:
+      - `sim_data.R` simulates data for analysis:
         
           - Array designs are simulated using `flapper::sim_array()`;
           - Movement paths are simulated using `flapper::sim_path_sa()`;
           - For each movement path and array design, observations
             arising from movement—namely, detections at receivers—are
             simulated via `flapper::sim_detections()`;
-          - A directory system within `data` (see below) in which to
-            store the results from the analyses of these simulated data
-            is also set up;
+          - A directory system within `data` (see below), within which
+            results from the analyses of these simulated data are
+            stored, is also set up;
     
-      - `sim_analyse` analyses the simulated movement path(s) and
+      - `sim_analyse.R` analyses the simulated movement path(s) and
         methods for examining emergent patterns of space use.
     
-      - `sim_workhorse` provides methods for implementing the `flapper`
-        family of algorithms to simulated data.
+      - `sim_workhorse.R` provides methods for implementing the
+        `flapper` family of algorithms to simulated data.
     
-      - `sim_implement` is a wrapper that, for each simulated movement
+      - `sim_implement.R` is a wrapper that, for each simulated movement
         path and array design, implements `sim_workhorse` to generate
         outputs.
     
-      - `sim_illustrate` illustrates the main outputs of the `flapper`
+      - `sim_illustrate.R` illustrates the main outputs of the `flapper`
         family of algorithms.
     
-      - `sim_synthesise` synthesises the main results of applying the
-        `flapper` family of algorithms to reconstruct patterns of space
-        use for different array designs.
+      - `sim_synthesise.R` synthesises the main results from
+        applications of the `flapper` family of algorithms in different
+        array designs.
     
-      - `sim_wall_time` calculates the wall time for all simulations.
+      - `sim_wall_time.R` calculates the wall time for all simulations.
 
-2.  `data` contains data for the project.
+2.  `data/` contains data for the project.
 
-3.  `fig` contains figures.
+3.  `fig/` contains figures.
 
-Note that `data` and `fig` are not included in the online version of
+Note that `data/` and `fig/` are not included in the online version of
 this repository.
 
 ## Workflow
 
-1.  Run `sim_data` to simulate datasets, customising the array designs
+1.  Run `sim_data.R` to simulate datasets, customising the array designs
     and movement path parameters as necessary\*.
 
 2.  Examine methods for inferring patterns of space use for the
-    simulated movement path(s) via `sim_analyse`.
+    simulated movement path(s) via `sim_analyse.R`.
 
 3.  Implement algorithms for a specific movement path and array
-    combination via `sim_workhorse` or for all movement paths and array
-    designs via `sim_implement`\*. Note that for the former, the
+    combination via `sim_workhorse.R` or for all movement paths and
+    array designs via `sim_implement.R`\*. Note that for the former, the
     movement path and array ID need to be specified at the top of the
     script.
 
-4.  Examine and synthesise outputs via `sim_illustrate`,
-    `sim_synthesise` and `sim_wall_time`.
+4.  Examine and synthesise outputs via `sim_illustrate.R`,
+    `sim_synthesise.R` and `sim_wall_time.R`.
 
-5.  Examine outputs in `data` and `fig`, such as the example figure
+5.  Examine outputs in `data/` and `fig/`, such as the example figure
     below.
 
 \*For the first implementation of this project, ensure that all sections
@@ -108,8 +114,8 @@ previously created files are loaded and used for analysis).
 
 <img src="README_img.png"/>
 
-*Figure 1. A comparison of methods for reconstructing simulated patterns
-of movement and space use, derived from an application of the
+*Figure 2. An example comparison of methods for reconstructing simulated
+patterns of movement and space use, derived from an application of the
 `flapper_sim` project.*
 
 ## Packages
@@ -132,6 +138,6 @@ available on [GitHub](https://github.com/) are also used:
 
 ## Citation
 
-Lavender et al. (in prep). A new family of algorithms for inferring
-movement paths and patterns of space use from discrete detections in
-acoustic arrays.
+Lavender et al. (in prep). A holistic framework and a new family of
+algorithms for reconstructing movement paths and patterns of space use
+from passive acoustic telemetry.
