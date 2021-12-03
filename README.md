@@ -138,6 +138,5 @@ available on [GitHub](https://github.com/) are also used:
 
 ## Citation
 
-Lavender et al. (in prep). A holistic framework and a new family of
-algorithms for reconstructing movement paths and patterns of space use
-from passive acoustic telemetry.
+Lavender et al. (in prep). A semi-stochastic modelling framework for
+passive acoustic telemetry.

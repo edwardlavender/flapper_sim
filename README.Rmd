@@ -89,5 +89,5 @@ This repository uses a number of non-default packages, available from [The Compr
 
 ## Citation
 
-Lavender et al. (in prep). A holistic framework and a new family of algorithms for reconstructing movement paths and patterns of space use from passive acoustic telemetry. 
+Lavender et al. (in prep). A semi-stochastic modelling framework for passive acoustic telemetry.
 
