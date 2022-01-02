@@ -4,6 +4,7 @@
 
 #### This code
 # Implements the sim_workhorse script for all movement paths/array designs.
+# For path_1, this takes ~ 147 minutes.
 
 #### Steps preceding this code
 # Implement sim_data.R

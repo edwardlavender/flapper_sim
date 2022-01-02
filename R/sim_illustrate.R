@@ -48,7 +48,7 @@ if(run){
                calc_depth_error = function(...) matrix(c(-5, 5), nrow = 2),
                save_record_spatial = 1:30L)
   out_dc_s <- acdc_simplify(out_dc, type = "dc")
-  ## DCPF algorithm (0.04 mins)
+  ## DCPF algorithm (0.02 mins)
   out_dc_record <- acdc_access_maps(out_dc_s)
   out_dcpf <- pf(out_dc_record,
                  bathy = grid,
@@ -56,12 +56,12 @@ if(run){
                  mobility_from_origin = 1,
                  mobility = mob_on_grid,
                  calc_movement_pr = calc_mpr_on_grid)
-  # Define paths
+  # Define paths (0.03 mins)
   out_dcpf_paths <- pf_simplify(out_dcpf, max_n_paths = 1000)
   # Define a subset of paths
   out_dcpf_paths_ll <- pf_loglik(out_dcpf_paths)
   out_dcpf_paths_sbt <- out_dcpf_paths[out_dcpf_paths$path_id %in% out_dcpf_paths_ll$path_id[1], ]
-  # Interpret LCPs
+  # Interpret LCPs (0.01 mins)
   out_dcpf_lcps <- lcp_interp(paths = out_dcpf_paths_sbt,
                               surface = grid,
                               calc_distance = FALSE)

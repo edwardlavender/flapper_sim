@@ -24,6 +24,7 @@ path_id <- 1L
 sim_wall_time <- lapply(split(dat_sim_array_info_2, 1:nrow(dat_sim_array_info_2)), function(array){
 
   #### Get param
+  # array <- dat_sim_array_info_2[1, , drop = FALSE]
   array_id <- array$index
 
   #### AC time

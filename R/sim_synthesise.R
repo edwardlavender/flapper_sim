@@ -169,7 +169,7 @@ if(run){
 
 #### Choose whether or not to plot POUs or KUDs
 type <- c("kud", "pou")
-type <- type[2]
+type <- type[1]
 
 #### Choose whether or not to focus on a small selection of arrays
 dat_sim_array_info_2 <- dat_sim_array_info

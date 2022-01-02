@@ -128,9 +128,10 @@ if(make_detection_kernels){
 
 #### Prepare movement data
 acoustics$receiver_id <- as.integer(as.character(acoustics$receiver_id))
+acoustics$index      <- 1:nrow(acoustics)
 archival$index <- 1:nrow(archival)
-archival <- archival[archival$timestamp >= min(acoustics$timestamp) &
-                       archival$timestamp <= max(acoustics$timestamp), ]
+archival       <- archival[archival$timestamp >= min(acoustics$timestamp) &
+                             archival$timestamp <= max(acoustics$timestamp), ]
 
 #### Focus on parts of paths that detections enable us to resolve
 path$xy_mat_on_grid_within_acoustics <- path$xy_mat_on_grid[archival$index, ]
@@ -157,7 +158,7 @@ if(nrow(path$xy_mat_on_grid_within_acoustics) >= 5){
 #### Implement AC and ACDC algorithms
 
 #### Implement AC algorithm
-run_ac <- FALSE
+run_ac <- TRUE
 if(run_ac){
   out_ac <- ac(acoustics = acoustics,
                step = step,
@@ -176,7 +177,7 @@ if(run_ac){
 }
 
 #### Implement ACDC algorithm
-run_acdc <- FALSE
+run_acdc <- TRUE
 if(run_acdc){
   out_acdc <- acdc(acoustics = acoustics,
                    archival = archival,
@@ -228,11 +229,11 @@ par(pp)
 out_ac_record <- pf_setup_record(paste0(con_root, "ac/record/"))
 
 ## Implement algorithm [5 minutes]
-run_acpf <- FALSE
+run_acpf <- TRUE
 if(run_acpf){
   out_acpf <- pf(record = out_ac_record,
-                 calc_movement_pr = calc_mpr_on_grid,
-                 mobility = mob_on_grid,
+                 calc_movement_pr = calc_mpr_on_grid, # note relaxed movement model for grid
+                 mobility = mob_on_grid,              # note relaxed mobility
                  n = 100L,
                  con = paste0(con_root, "acpf/acpf_log.txt"),
                  seed = seed
@@ -247,7 +248,7 @@ if(run_acpf){
 ## Define record
 out_acdc_record <- pf_setup_record(paste0(con_root, "acdc/record/"))
 ## Implement algorithm
-run_acdcpf <- FALSE
+run_acdcpf <- TRUE
 if(run_acdcpf){
   out_acdcpf <- pf(record = out_acdc_record,
                    calc_movement_pr = calc_mpr_on_grid, # note relaxed movement model for grid
@@ -273,20 +274,22 @@ pf_plot_history(out_acdcpf, time_steps = 1)
 par(pp)
 
 #### Assemble particle histories for connected cell pairs
-## ACPF
-run_pf_simplify <- FALSE
+## ACPF [~2.5 minutes]
+run_pf_simplify <- TRUE
 if(run_pf_simplify){
+  out_acpf$args$bathy <- grid
   out_acpf_pairs <- pf_simplify(out_acpf,
-                              cl = NULL,
-                              return = "archive"
-                              )
+                                cl = NULL,
+                                return = "archive"
+                                )
   saveRDS(out_acpf_pairs, paste0(con_root, "acpf/out_acpf_pairs.rds"))
 } else {
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
 }
 ## ACDCPF
-run_pf_simplify <- FALSE
+run_pf_simplify <- TRUE
 if(run_pf_simplify){
+  out_acdcpf$args$bathy <- grid
   out_acdcpf_pairs <- pf_simplify(out_acdcpf,
                                   cl = NULL,
                                   return = "archive"
@@ -302,7 +305,7 @@ out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = max, return
 
 #### Build a sample of paths
 # To assemble a paths with max_n_copies = 5L and max_n_paths = 10000L this takes ~ 1 minute
-build_paths <- FALSE
+build_paths <- TRUE
 if(build_paths){
   ## ACPF paths
   set.seed(seed)
