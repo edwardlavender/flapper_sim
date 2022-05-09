@@ -16,7 +16,7 @@
 #### Run sim_data.R
 # ... okay.
 
-run <- TRUE # suppress setup once it has been run once for quick editing of plots (below)
+run <- FALSE # suppress setup once it has been run once for quick editing of plots (below)
 if(run){
 
 
@@ -41,6 +41,11 @@ if(run){
   ######################################
   #### Get algorithm results
 
+  #### Scale outputs to a maximum value of one
+  # This means that all maps can be generated using one scale bar
+  # This has no discernible influence on the maps.
+  scale <- TRUE
+
   #### DC algorithm(s)
   ## DC algorithm (0.07 mins)
   out_dc <- dc(archival = archival,
@@ -49,6 +54,7 @@ if(run){
                calc_depth_error = function(...) matrix(c(-5, 5), nrow = 2),
                save_record_spatial = 1:30L)
   out_dc_s <- acdc_simplify(out_dc, type = "dc")
+  if(scale) out_dc_s$map <- scale_raster(out_dc_s$map)
   ## DCPF algorithm (0.02 mins)
   out_dc_record <- acdc_access_maps(out_dc_s)
   out_dcpf <- pf(out_dc_record,
@@ -67,29 +73,31 @@ if(run){
                               surface = grid,
                               calc_distance = FALSE)
 
-
   #### AC* algorithms
   # AC algorithm
   out_ac <- readRDS(paste0(con_root, "ac/out_ac.rds"))
   out_ac_s <- acdc_simplify(out_ac)
+  if(scale) out_ac_s$map <- scale_raster(out_ac_s$map)
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
   out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acpf_pairs_ud   <- pf_kud_2(out_acpf_pairs_unq,
                                   bathy = grid, sample_size = NULL,
                                   estimate_ud = adehabitatHR::kernelUD,
                                   grid = kud_grid_resolution)
-
+  if(scale) out_acpf_pairs_ud <- scale_raster(out_acpf_pairs_ud)
   out_acpf_paths <- readRDS(paste0(con_root, "acpf/out_acpf_paths.rds"))
   out_acpf_paths_ll  <- pf_loglik(out_acpf_paths)
   out_acpf_paths_sbt <-  out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1], ]
   # ACDC algorithm(s)
   out_acdc <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
   out_acdc_s <- acdc_simplify(out_acdc)
+  if(scale) out_acdc_s$map <- scale_raster(out_acdc_s$map)
   out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
   out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acdcpf_pairs_ud   <- pf_kud_2(out_acdcpf_pairs_unq,
                                     bathy = grid, sample_size = NULL,
                                     estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution)
+  if(scale) out_acdcpf_pairs_ud <- scale_raster(out_acdcpf_pairs_ud)
   out_acdcpf_paths <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_paths.rds"))
   out_acdcpf_paths_ll  <- pf_loglik(out_acdcpf_paths)
   out_acdcpf_paths_sbt <-  out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
@@ -132,7 +140,7 @@ spaces <- "    "
 bathy_zlim <- c(0, 225)
 bathy_col_param <- pretty_cols_brewer(bathy_zlim, scheme = "Blues", n_breaks = max(bathy_zlim))
 bathy_cols <- bathy_col_param$col
-add_bathy <- list(x = grid, plot_method = raster::image, zlim = bathy_zlim, col = bathy_cols)
+add_bathy <- list(x = grid, plot_method = plot_raster_img, zlim = bathy_zlim, col = bathy_cols)
 add_paths <- list(x = NULL, col = viridis::viridis(nrow(path$xy_mat_on_grid)), lwd = 2, length = 0.05)
 
 #### Plot the simulated array and path
@@ -146,7 +154,7 @@ pretty_map(add_rasters = add_bathy,
            xlim = xlim, ylim = ylim,
            pretty_axis_args = paa,
            crop_spatial = TRUE
-           )
+)
 mtext(side = 3, "A", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(array & path)"), adj = adj_2, cex = cex_main)
 
@@ -185,8 +193,9 @@ mtext(side = 3, paste0(spaces, "(movement time series)"), adj = adj_2 - 0.01, ce
 
 #### Plot DC algorithm(s)
 ## DC
-pretty_map(add_rasters = list(x = out_dc_s$map, plot_method = raster::image),
+pretty_map(add_rasters = list(x = out_dc_s$map, plot_method = plot_raster_img),
            pretty_axis_args = paa)
+add_contour(out_dc_s$map)
 mtext(side = 3, "C", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(DC)"), adj = adj_2, cex = cex_main)
 ## DCPF
@@ -205,10 +214,11 @@ mtext(side = 3, paste0(spaces, "(DCPF)"), adj = adj_2, cex = cex_main)
 
 #### Plot AC algorithm(s)
 ## AC
-prettyGraphics::pretty_map(add_rasters = list(x = out_ac_s$map, plot_method = raster::image),
+prettyGraphics::pretty_map(add_rasters = list(x = out_ac_s$map, plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
+add_contour(out_ac_s$map)
 mtext(side = 3, "D", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(AC)"), adj = adj_2, cex = cex_main)
 ## AC path
@@ -221,28 +231,31 @@ pf_plot_2d(out_acpf_paths_sbt,
 mtext(side = 3, "G", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [path])"), adj = adj_2, cex = cex_main)
 ## AC particles
-pf_plot_map(out_acpf_pairs_unq,
-            add_rasters = list(plot_method = raster::image),
-            map = grid, scale = "sum",
-            xlim = xlim, ylim = ylim,
-            pretty_axis_args = paa,
-            crop_spatial = TRUE)
+mp <- pf_plot_map(out_acpf_pairs_unq,
+                  add_rasters = list(plot_method = plot_raster_img),
+                  map = grid, scale = "sum",
+                  xlim = xlim, ylim = ylim,
+                  pretty_axis_args = paa,
+                  crop_spatial = TRUE)
+add_contour(mp)
 mtext(side = 3, "I", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [POU])"), adj = adj_2, cex = cex_main)
 ## AC UD
-prettyGraphics::pretty_map(add_rasters = list(x = out_acpf_pairs_ud, plot_method = raster::image),
+prettyGraphics::pretty_map(add_rasters = list(x = out_acpf_pairs_ud, plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
+add_contour(out_acpf_pairs_ud)
 mtext(side = 3, "K", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [KUD])"), adj = adj_2, cex = cex_main)
 
 #### Plot ACDC algorithm(s)
 ## ACDC
-prettyGraphics::pretty_map(add_rasters = list(x = out_acdc_s$map, plot_method = raster::image),
+prettyGraphics::pretty_map(add_rasters = list(x = out_acdc_s$map, plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
+add_contour(out_acdc_s$map)
 mtext(side = 3, "E", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDC)"), adj = adj_2, cex = cex_main)
 ## ACDC path
@@ -255,19 +268,21 @@ pf_plot_2d(out_acdcpf_paths_sbt,
 mtext(side = 3, "H", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [path])"), adj = adj_2, cex = cex_main)
 ## ACDC particles
-pf_plot_map(out_acdcpf_pairs_unq,
-            add_rasters = list(plot_method = raster::image),
-            map = grid, scale = "sum",
-            xlim = xlim, ylim = ylim,
-            pretty_axis_args = paa,
-            crop_spatial = TRUE)
+mp <- pf_plot_map(out_acdcpf_pairs_unq,
+                  add_rasters = list(plot_method = plot_raster_img),
+                  map = grid, scale = "sum",
+                  xlim = xlim, ylim = ylim,
+                  pretty_axis_args = paa,
+                  crop_spatial = TRUE)
+add_contour(mp)
 mtext(side = 3, "J", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [POU])"), adj = adj_2, cex = cex_main)
 ## ACDC UD
-prettyGraphics::pretty_map(add_rasters = list(x = out_acdcpf_pairs_ud, plot_method = raster::image),
+prettyGraphics::pretty_map(add_rasters = list(x = out_acdcpf_pairs_ud, plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
+add_contour(out_acdcpf_pairs_ud)
 mtext(side = 3, "L", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [KUD])"), adj = adj_2, cex = cex_main)
 

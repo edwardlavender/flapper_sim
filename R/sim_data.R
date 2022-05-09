@@ -21,10 +21,12 @@ rm(list = ls())
 #### Essential packages
 library(prettyGraphics)
 library(flapper)
+source("./R/helper.R")
 
 #### Global parameters
 seed <- 20210828
 proj_wgs84 <- sp::CRS("+init=epsg:4326")
+
 
 ######################################
 ######################################
@@ -393,7 +395,7 @@ dat_sim_paths_ud <- lapply(dat_sim_paths, function(dat_sim_path){
 step             <- 120
 det_rng          <- 300      # as defined previously because on the scale of the grid
 clock_drift      <- 5
-mob_on_grid      <- mob_sim + 75 # mobility is higher than simulated when expressed at the resolution of the grid
+mob_on_grid      <- mob_sim + raster::res(grid)[1] # mobility is higher than simulated when expressed at the resolution of the grid
 
 #### Define movement model over grid
 # [with a relaxation of the maximum mobility to allow for the effects of grid resolution]

@@ -166,6 +166,7 @@ if(run_ac){
                bathy = grid,
                detection_centroids = detection_centroids,
                detection_kernels = kernels, detection_kernels_overlap = overlaps, detection_time_window = clock_drift,
+               normalise = TRUE,
                mobility = mob_on_grid,
                save_record_spatial = 0,
                con = paste0(con_root, "ac/"),
@@ -182,7 +183,7 @@ if(run_ac){
 check_normalisation <- FALSE
 if(check_normalisation){
   out_ac_record_sums <-
-    pbapply::pblapply(pf_setup_record(paste0(con_root, "ac/record/")), cl = 10L, function(x){
+    pbapply::pblapply(pf_setup_record(paste0(con_root, "ac/record/"))[1:10], function(x){
       raster::cellStats(raster::raster(x), "sum")
     }) %>% unlist()
   unique(out_ac_record_sums)
@@ -196,13 +197,13 @@ if(run_acdc){
                    bathy = grid,
                    detection_centroids = detection_centroids,
                    detection_kernels = kernels, detection_kernels_overlap = overlaps, detection_time_window = clock_drift,
+                   normalise = TRUE,
                    mobility = mob_on_grid,
                    calc_depth_error = function(...) matrix(c(-5, 5), nrow = 2),
                    save_record_spatial = 0,
                    con = paste0(con_root, "acdc/"),
                    write_record_spatial_for_pf = list(filename = paste0(con_root, "acdc/record/"), format = "GTiff",
-                                                      overwrite = TRUE),
-                   normalise = TRUE
+                                                      overwrite = TRUE)
                    )
   saveRDS(out_acdc, paste0(con_root, "acdc/out_acdc.rds"))
 } else{
@@ -213,7 +214,7 @@ if(run_acdc){
 check_normalisation <- FALSE
 if(check_normalisation){
   out_acdc_record_sums <-
-    pbapply::pblapply(pf_setup_record(paste0(con_root, "acdc/record/")), cl = 10L, function(x){
+    pbapply::pblapply(pf_setup_record(paste0(con_root, "acdc/record/"))[1:10], function(x){
       raster::cellStats(raster::raster(x), "sum")
     }) %>% unlist()
   unique(out_acdc_record_sums)
@@ -391,25 +392,18 @@ if(trial_kuds){
   pp <- par(mfrow = c(2, 3))
   prettyGraphics::pretty_map(add_rasters = list(x = path_ud), main = "Sim")
   # pf_kud_1() approach without resampling produces a highly skewed picture
-  out_acpf_pairs_ud_a <- pf_kud_1(out_acpf_pairs,
+  out_acpf_pairs_ud_a <- pf_kud_1(out_acpf_pairs_unq,
                                   bathy = grid, sample_size = NULL,
                                   estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution,
                                   chunks = 10L, cl = parallel::makeCluster(10L))
   # pf_kud_1() approach with re-sampling similarly produces a highly skewed picture
-  out_acpf_pairs_ud_b <- pf_kud_1(out_acpf_pairs,
+  out_acpf_pairs_ud_b <- pf_kud_1(out_acpf_pairs_unq,
                                   bathy = grid, sample_size = 5000L,
                                   estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution,
                                   chunks = 10L, cl = parallel::makeCluster(10L))
-  # pf_kud_1() approach with scale = TRUE produces a vague map
-  out_acpf_pairs_ud_c <- pf_kud_1(out_acpf_pairs,
-                                  bathy = grid, sample_size = 5000L, scale = TRUE,
-                                  estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution,
-                                  chunks = 10L, cl = parallel::makeCluster(10L))
-  # pf_kud_2() approach over all UNIQUE particles is less vague (the approach based on all particles is not good)
-  out_acpf_pairs_ud_d <- pf_kud_2(out_acpf_pairs_unq,
-                                  bathy = grid,
-                                  estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution)
+  add_contour(out_acpf_pairs_ud_b)
   par(pp)
+
 
   ## Trial approaches based on paths
   # The truth

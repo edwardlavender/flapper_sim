@@ -29,12 +29,12 @@ scale_kud <- "max"
 sapply(dat_sim_detections_by_path[[path_id]], function(acc) nrow(acc))
 
 #### POU and KUDs for each array
-run <- TRUE
+run <- FALSE
 if(run){
   estimates_by_array <- lapply(1:length(dat_sim_arrays), function(array_id){
 
     #### Get array/path details
-    # array_id <- 1
+    # array_id <- 10
     con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/")
     print(array_id)
 
@@ -83,7 +83,7 @@ if(run){
       path_kud <- raster::resample(path_kud, grid)
       path_kud <- path_kud/raster::cellStats(path_kud, "sum")
       path_kud <- path_kud/raster::cellStats(path_kud, scale_kud)
-      pretty_map(add_rasters = list(x = path_kud))
+      pretty_map(add_rasters = list(x = path_kud, interpolation = TRUE))
     }
 
     #### COA for simulated time series
@@ -127,7 +127,7 @@ if(run){
       if(all(is.na(raster::getValues(coa_kud)))){
         coa_kud <- NULL
       } else {
-        pretty_map(add_rasters = list(x = coa_kud))
+        pretty_map(add_rasters = list(x = coa_kud, interpolation = TRUE))
       }
     }
 
@@ -157,7 +157,7 @@ if(run){
     return(out)
 
   })
-  save <- TRUE
+  save <- FALSE
   if(save) saveRDS(estimates_by_array, paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))
 
 } else estimates_by_array <- readRDS(paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))
@@ -218,7 +218,7 @@ add_textbox <- list(x = atx,
 bathy_zlim <- c(0, 225)
 bathy_col_param <- pretty_cols_brewer(bathy_zlim, scheme = "Blues", n_breaks = max(bathy_zlim))
 bathy_cols <- bathy_col_param$col
-add_bathy <- list(x = grid, plot_method = raster::image, zlim = bathy_zlim, col = bathy_cols)
+add_bathy <- list(x = grid, plot_method = plot_raster_img, zlim = bathy_zlim, col = bathy_cols)
 add_paths <- list(length = 0.01, lwd = 0.5)
 if(type == "pou") add_paths$lwd <- 0.1
 
@@ -267,7 +267,9 @@ lapply(array_ids, function(array_id){
 
   #### Define algorithm plotting param
   map_param <- map_param_raw <- list(x = grid,
-                                     add_rasters = list(x = NULL, plot_method = raster::image, zlim = c(0, 1)),
+                                     add_rasters = list(x = NULL,
+                                                        plot_method = raster::image,
+                                                        zlim = c(0, 1)),
                                      xlim = xlim, ylim = ylim,
                                      pretty_axis_args = paa,
                                      crop_spatial = TRUE)
@@ -291,6 +293,7 @@ lapply(array_ids, function(array_id){
   if(is.null(map_param$add_rasters$x)) map_param$add_rasters <- NULL
   map_param$add_points    <- list(x = estimates_for_array$coa_xy$x, estimates_for_array$coa_xy$y, pch = 17, bg = "black")
   do.call(prettyGraphics::pretty_map, map_param)
+  if(!is.null(map_param$add_rasters$x)) add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
   map_param$add_points    <- NULL
   if(is.null(map_param$add_rasters)) map_param$add_rasters <- map_param_raw$add_rasters
@@ -302,8 +305,10 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (4): ACPF
+  map_param$add_rasters$plot_method <- plot_raster_img
   map_param$add_rasters$x <- estimates_for_array[[type]]$acpf
   do.call(prettyGraphics::pretty_map, map_param)
+  add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "d")
   do.call(plotrix::textbox, add_textbox)
@@ -315,6 +320,7 @@ lapply(array_ids, function(array_id){
   #### Plot (5): ACDCPF
   map_param$add_rasters$x <- estimates_for_array[[type]]$acdcpf
   do.call(prettyGraphics::pretty_map, map_param)
+  add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "e")
   do.call(plotrix::textbox, add_textbox)
