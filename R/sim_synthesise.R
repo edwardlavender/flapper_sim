@@ -29,7 +29,7 @@ scale_kud <- "max"
 sapply(dat_sim_detections_by_path[[path_id]], function(acc) nrow(acc))
 
 #### POU and KUDs for each array
-run <- FALSE
+run <- TRUE
 if(run){
   estimates_by_array <- lapply(1:length(dat_sim_arrays), function(array_id){
 
@@ -136,8 +136,8 @@ if(run){
     out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
 
     #### Simplify particle histories to retain unique particles
-    out_acpf_pairs_unq   <- pf_simplify(out_acpf_pairs, summarise_pr = max, return = "archive")
-    out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = max, return = "archive")
+    out_acpf_pairs_unq   <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
+    out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
 
     #### Get pou
     acpf_pou   <- pf_plot_map(out_acpf_pairs_unq, grid, scale = scale_pou)
@@ -157,7 +157,7 @@ if(run){
     return(out)
 
   })
-  save <- FALSE
+  save <- TRUE
   if(save) saveRDS(estimates_by_array, paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))
 
 } else estimates_by_array <- readRDS(paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))

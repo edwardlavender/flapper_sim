@@ -35,6 +35,8 @@ lapply(1:length(dat_sim_paths), function(path_id){
 sink()
 t2 <- Sys.time()
 difftime(t2, t1, units = "mins")
+beepr::beep(10)
+
 
 #### End of code
 ######################################

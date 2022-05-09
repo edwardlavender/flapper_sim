@@ -45,6 +45,7 @@ if(run){
   ## DC algorithm (0.07 mins)
   out_dc <- dc(archival = archival,
                bathy = grid,
+               normalise = TRUE,
                calc_depth_error = function(...) matrix(c(-5, 5), nrow = 2),
                save_record_spatial = 1:30L)
   out_dc_s <- acdc_simplify(out_dc, type = "dc")
@@ -72,10 +73,12 @@ if(run){
   out_ac <- readRDS(paste0(con_root, "ac/out_ac.rds"))
   out_ac_s <- acdc_simplify(out_ac)
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
-  out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = max, return = "archive")
+  out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acpf_pairs_ud   <- pf_kud_2(out_acpf_pairs_unq,
                                   bathy = grid, sample_size = NULL,
-                                  estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution)
+                                  estimate_ud = adehabitatHR::kernelUD,
+                                  grid = kud_grid_resolution)
+
   out_acpf_paths <- readRDS(paste0(con_root, "acpf/out_acpf_paths.rds"))
   out_acpf_paths_ll  <- pf_loglik(out_acpf_paths)
   out_acpf_paths_sbt <-  out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1], ]
@@ -83,7 +86,7 @@ if(run){
   out_acdc <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
   out_acdc_s <- acdc_simplify(out_acdc)
   out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
-  out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = max, return = "archive")
+  out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acdcpf_pairs_ud   <- pf_kud_2(out_acdcpf_pairs_unq,
                                     bathy = grid, sample_size = NULL,
                                     estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution)
@@ -135,15 +138,15 @@ add_paths <- list(x = NULL, col = viridis::viridis(nrow(path$xy_mat_on_grid)), l
 #### Plot the simulated array and path
 array$array$xy_buf <- rgeos::gBuffer(sp::SpatialPoints(array$array$xy), width = 300, quadsegs = 1000)
 add_paths$x <- path$xy_mat_on_grid
-prettyGraphics::pretty_map(add_rasters = add_bathy,
-                           add_paths = add_paths,
-                           add_points = list(x = sp::coordinates(array$array$xy),
-                                             pch = 21, col = "black", bg = "black", cex = 1.5),
-                           add_polys = list(x = array$array$xy_buf, border = "black", lwd = 1.5, lty = 3),
-                           xlim = xlim, ylim = ylim,
-                           pretty_axis_args = paa,
-                           crop_spatial = TRUE
-                           )
+pretty_map(add_rasters = add_bathy,
+           add_paths = add_paths,
+           add_points = list(x = sp::coordinates(array$array$xy),
+                             pch = 21, col = "black", bg = "black", cex = 1.5),
+           add_polys = list(x = array$array$xy_buf, border = "black", lwd = 1.5, lty = 3),
+           xlim = xlim, ylim = ylim,
+           pretty_axis_args = paa,
+           crop_spatial = TRUE
+           )
 mtext(side = 3, "A", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(array & path)"), adj = adj_2, cex = cex_main)
 
@@ -278,7 +281,7 @@ dev.off()
 png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_1.png"),
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
-fields::image.plot(grid, zlim = bathy_zlim, legend.only = TRUE, col = bathy_cols)
+fields::image.plot(grid, zlim = sort(bathy_zlim*-1), legend.only = TRUE, col = rev(bathy_cols))
 mtext(side = 4, "Depth (m)", cex = cex_main, line = 2.5)
 dev.off()
 ## Time
@@ -286,7 +289,7 @@ png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_2
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
 fields::image.plot(grid, zlim = c(0, 500), legend.only = TRUE, col = viridis::viridis(501))
-mtext(side = 4, "Time", cex = cex_main, line = 2.5)
+mtext(side = 4, "Time (steps)", cex = cex_main, line = 2.5)
 dev.off()
 ## Surfaces
 png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_3.png"),

@@ -75,13 +75,14 @@ if(nrow(out_coa) >= 5){
 #### Flapper algorithm: array-specific set up
 
 #### Define acoustic centroids
-make_detection_centroids <- FALSE
+make_detection_centroids <- TRUE
 if(make_detection_centroids){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, data.frame(receiver_id = 1:length(rxy)))
   detection_centroids <- acs_setup_centroids(xy = rxy,
                                             detection_range = det_rng,
-                                            boundaries = area, quadsegs = 1000,
+                                            boundaries = area,
+                                            resolution = 1000,
                                             plot = FALSE,
                                             verbose = TRUE
                                             )
@@ -91,12 +92,12 @@ if(make_detection_centroids){
 }
 
 #### Detection centroid overlaps
-make_detection_centriods_overlaps <- FALSE
+make_detection_centriods_overlaps <- TRUE
 if(make_detection_centriods_overlaps){
   centroids_dets <- get_detection_centroids(xy = array$array$xy,
                                             detection_range = det_rng,
                                             boundaries = area,
-                                            byid = TRUE, quadsegs = 1000)
+                                            byid = TRUE, resolution = 1000)
   centroids_df <- moorings
   row.names(centroids_df) <- names(centroids_dets)
   centroids_dets <- sp::SpatialPolygonsDataFrame(centroids_dets, centroids_df)
@@ -107,7 +108,7 @@ if(make_detection_centriods_overlaps){
 }
 
 #### Define detection kernels
-make_detection_kernels <- FALSE
+make_detection_kernels <- TRUE
 if(make_detection_kernels){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, moorings)
@@ -115,7 +116,7 @@ if(make_detection_kernels){
                                          centroids = detection_centroids,
                                          overlaps = overlaps,
                                          calc_detection_pr = calc_dpr,
-                                         map = grid)
+                                         bathy = grid)
   saveRDS(kernels, paste0(con_root, "detection_kernels.rds"))
 } else {
   kernels <- readRDS(paste0(con_root, "detection_kernels.rds"))
@@ -169,11 +170,22 @@ if(run_ac){
                save_record_spatial = 0,
                con = paste0(con_root, "ac/"),
                write_record_spatial_for_pf = list(filename = paste0(con_root, "ac/record/"), format = "GTiff",
-                                                  overwrite = TRUE)
+                                                  overwrite = TRUE),
+               normalise = TRUE
                )
   saveRDS(out_ac, paste0(con_root, "ac/out_ac.rds"))
 } else{
   out_ac <- readRDS(paste0(con_root, "ac/out_ac.rds"))
+}
+
+#### Check normalisation
+check_normalisation <- FALSE
+if(check_normalisation){
+  out_ac_record_sums <-
+    pbapply::pblapply(pf_setup_record(paste0(con_root, "ac/record/")), cl = 10L, function(x){
+      raster::cellStats(raster::raster(x), "sum")
+    }) %>% unlist()
+  unique(out_ac_record_sums)
 }
 
 #### Implement ACDC algorithm
@@ -189,11 +201,22 @@ if(run_acdc){
                    save_record_spatial = 0,
                    con = paste0(con_root, "acdc/"),
                    write_record_spatial_for_pf = list(filename = paste0(con_root, "acdc/record/"), format = "GTiff",
-                                                      overwrite = TRUE)
+                                                      overwrite = TRUE),
+                   normalise = TRUE
                    )
   saveRDS(out_acdc, paste0(con_root, "acdc/out_acdc.rds"))
 } else{
   out_acdc <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
+}
+
+#### Check normalisation
+check_normalisation <- FALSE
+if(check_normalisation){
+  out_acdc_record_sums <-
+    pbapply::pblapply(pf_setup_record(paste0(con_root, "acdc/record/")), cl = 10L, function(x){
+      raster::cellStats(raster::raster(x), "sum")
+    }) %>% unlist()
+  unique(out_acdc_record_sums)
 }
 
 
@@ -300,8 +323,11 @@ if(run_pf_simplify){
 }
 
 #### Simplify particle histories to retain unique particles
-out_acpf_pairs_unq   <- pf_simplify(out_acpf_pairs, summarise_pr = max, return = "archive")
-out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = max, return = "archive")
+out_acpf_pairs_unq   <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
+out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
+# Check normalisation for an example time step
+sum(out_acpf_pairs_unq[["history"]][[2]][["pr_current"]])
+sum(out_acdcpf_pairs_unq[["history"]][[2]][["pr_current"]])
 
 #### Build a sample of paths
 # To assemble a paths with max_n_copies = 5L and max_n_paths = 10000L this takes ~ 1 minute
@@ -336,10 +362,10 @@ if(build_paths){
 subset_paths <- FALSE
 if(subset_paths){
   n_paths <- 50
-  out_acpf_paths_ll <- pf_loglik(out_acpf_paths)
-  out_acpf_paths   <- out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1:n_paths], ]
+  out_acpf_paths_ll   <- pf_loglik(out_acpf_paths)
+  out_acpf_paths      <- out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1:n_paths], ]
   out_acdcpf_paths_ll <- pf_loglik(out_acdcpf_paths)
-  out_acdcpf_paths <- out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1:n_paths], ]
+  out_acdcpf_paths    <- out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1:n_paths], ]
 }
 
 #### Examine overall maps
