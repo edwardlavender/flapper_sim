@@ -16,7 +16,7 @@
 #### Run sim_data.R
 # ... okay.
 
-run <- FALSE # suppress setup once it has been run once for quick editing of plots (below)
+run <- TRUE # suppress setup once it has been run once for quick editing of plots (below)
 if(run){
 
 
@@ -35,7 +35,7 @@ if(run){
   path       <- dat_sim_paths[[path_id]]
 
   #### Global param
-  kud_grid_resolution <- 120
+  kud_grid <- kud_habitat(grid)
 
 
   ######################################
@@ -66,7 +66,7 @@ if(run){
   # Define paths (0.03 mins)
   out_dcpf_paths <- pf_simplify(out_dcpf, max_n_paths = 1000)
   # Define a subset of paths
-  out_dcpf_paths_ll <- pf_loglik(out_dcpf_paths)
+  out_dcpf_paths_ll  <- pf_loglik(out_dcpf_paths)
   out_dcpf_paths_sbt <- out_dcpf_paths[out_dcpf_paths$path_id %in% out_dcpf_paths_ll$path_id[1], ]
   # Interpret LCPs (0.01 mins)
   out_dcpf_lcps <- lcp_interp(paths = out_dcpf_paths_sbt,
@@ -75,32 +75,36 @@ if(run){
 
   #### AC* algorithms
   # AC algorithm
-  out_ac <- readRDS(paste0(con_root, "ac/out_ac.rds"))
+  out_ac   <- readRDS(paste0(con_root, "ac/out_ac.rds"))
   out_ac_s <- acdc_simplify(out_ac)
   if(scale) out_ac_s$map <- scale_raster(out_ac_s$map)
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
   out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
-  out_acpf_pairs_ud   <- pf_kud_2(out_acpf_pairs_unq,
-                                  bathy = grid, sample_size = NULL,
-                                  estimate_ud = adehabitatHR::kernelUD,
-                                  grid = kud_grid_resolution)
+  out_acpf_pairs_pou <- pf_plot_map(out_acpf_pairs_unq, map = grid)
+  out_acpf_pairs_ud  <- pf_kud(out_acpf_pairs_pou,
+                               sample_size = 100,
+                               estimate_ud = adehabitatHR::kernelUD,
+                               grid = kud_grid)
   if(scale) out_acpf_pairs_ud <- scale_raster(out_acpf_pairs_ud)
-  out_acpf_paths <- readRDS(paste0(con_root, "acpf/out_acpf_paths.rds"))
+  out_acpf_paths     <- readRDS(paste0(con_root, "acpf/out_acpf_paths.rds"))
   out_acpf_paths_ll  <- pf_loglik(out_acpf_paths)
   out_acpf_paths_sbt <-  out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1], ]
   # ACDC algorithm(s)
-  out_acdc <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
+  out_acdc   <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
   out_acdc_s <- acdc_simplify(out_acdc)
   if(scale) out_acdc_s$map <- scale_raster(out_acdc_s$map)
-  out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
+  out_acdcpf_pairs     <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
   out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
-  out_acdcpf_pairs_ud   <- pf_kud_2(out_acdcpf_pairs_unq,
-                                    bathy = grid, sample_size = NULL,
-                                    estimate_ud = adehabitatHR::kernelUD, grid = kud_grid_resolution)
+  out_acdcpf_pairs_pou <- pf_plot_map(out_acdcpf_pairs_unq, map = grid)
+  out_acdcpf_pairs_ud  <- pf_kud(out_acdcpf_pairs_pou,
+                                 sample_size = 100,
+                                 estimate_ud = adehabitatHR::kernelUD,
+                                 grid = kud_grid)
   if(scale) out_acdcpf_pairs_ud <- scale_raster(out_acdcpf_pairs_ud)
-  out_acdcpf_paths <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_paths.rds"))
+  out_acdcpf_paths     <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_paths.rds"))
   out_acdcpf_paths_ll  <- pf_loglik(out_acdcpf_paths)
-  out_acdcpf_paths_sbt <-  out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
+  out_acdcpf_paths_sbt <-
+    out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
 
 }
 

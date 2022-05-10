@@ -18,10 +18,10 @@
 # Run sim_data.R
 
 #### Define global param
-path_id  <- 1
-path     <- dat_sim_paths[[1]]
-delta_t <- "2 hours"
-kud_grid_resolution <- 120
+path_id   <- 1
+path      <- dat_sim_paths[[1]]
+delta_t   <- "2 hours"
+kud_grid  <- kud_habitat(grid)
 scale_pou <- "max" # scale all maps between 0 and 1 for comparability
 scale_kud <- "max"
 
@@ -78,7 +78,7 @@ if(run){
         path$xy_mat_on_grid_within_acoustics,
         data = data.frame(ID = factor(rep(1, nrow(path$xy_mat_on_grid_within_acoustics)))),
         proj4string = raster::crs(grid))
-      path_kud <- adehabitatHR::kernelUD(xy = path_spdf, grid = kud_grid_resolution)
+      path_kud <- adehabitatHR::kernelUD(xy = path_spdf, grid = kud_grid)
       path_kud <- raster::raster(path_kud[[1]])
       path_kud <- raster::resample(path_kud, grid)
       path_kud <- path_kud/raster::cellStats(path_kud, "sum")
@@ -119,7 +119,7 @@ if(run){
         out_coa[, c("x", "y")],
         data = data.frame(ID = factor(rep(1, nrow(out_coa)))),
         proj4string = raster::crs(grid))
-      coa_kud <- adehabitatHR::kernelUD(xy = out_coa_spdf, grid = kud_grid_resolution)
+      coa_kud <- adehabitatHR::kernelUD(xy = out_coa_spdf, grid = kud_grid)
       coa_kud <- raster::raster(coa_kud[[1]])
       coa_kud <- raster::resample(coa_kud, grid)
       coa_kud <- coa_kud/raster::cellStats(coa_kud, "sum")
@@ -132,7 +132,7 @@ if(run){
     }
 
     #### Load particles samples (processed to exclude dead ends)
-    out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
+    out_acpf_pairs   <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
     out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
 
     #### Simplify particle histories to retain unique particles
@@ -144,9 +144,13 @@ if(run){
     acdcpf_pou <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = scale_pou)
 
     #### Get KUDs
-    acpf_kud   <- pf_kud_2(out_acpf_pairs_unq, bathy = grid, grid = kud_grid_resolution)
+    acpf_kud   <- pf_kud(acpf_pou,
+                         sample_size = 100,
+                         grid = kud_grid)
     acpf_kud   <- acpf_kud/raster::cellStats(acpf_kud, scale_kud)
-    acdcpf_kud <- pf_kud_2(out_acdcpf_pairs_unq, bathy = grid, grid = kud_grid_resolution)
+    acdcpf_kud <- pf_kud(acdcpf_pou,
+                         sample_size = 100,
+                         grid = kud_grid)
     acdcpf_kud <- acdcpf_kud/raster::cellStats(acdcpf_kud, scale_kud)
 
     #### Return POU as a list
@@ -226,7 +230,7 @@ if(type == "pou") add_paths$lwd <- 0.1
 lapply(array_ids, function(array_id){
 
   #### Get array/path details
-  # array_id <- 10
+  # array_id <- 12
   print(array_id)
   array                  <- dat_sim_arrays[[array_id]]
   array_info             <- dat_sim_array_info_2[dat_sim_array_info_2$index == array_id, ]
@@ -293,7 +297,7 @@ lapply(array_ids, function(array_id){
   if(is.null(map_param$add_rasters$x)) map_param$add_rasters <- NULL
   map_param$add_points    <- list(x = estimates_for_array$coa_xy$x, estimates_for_array$coa_xy$y, pch = 17, bg = "black")
   do.call(prettyGraphics::pretty_map, map_param)
-  if(!is.null(map_param$add_rasters$x)) add_contour(map_param$add_rasters$x, ext = ext)
+  if(type == "kud" && !is.null(map_param$add_rasters$x)) add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
   map_param$add_points    <- NULL
   if(is.null(map_param$add_rasters)) map_param$add_rasters <- map_param_raw$add_rasters

@@ -32,10 +32,11 @@ plot_raster <-
 
 #### Add contour to a plot
 add_contour <-
-  function(x, p = 0.5, ext = NULL){
+  function(x, p = 0.5, rm_zero = TRUE, ext = NULL){
     if(!is.null(ext)) x <- raster::crop(x, ext)
-    quant <- raster::quantile(x, p)
-    raster::contour(x, levels = quant, lwd = 0.5, labels = "", add = TRUE)
+    if(rm_zero) x[x == 0] <- NA
+    quant <- raster::quantile(x, p, na.rm = TRUE)
+    raster::contour(x, levels = quant, lwd = 0.5, drawlabels = FALSE, add = TRUE)
     return(invisible())
   }
 
