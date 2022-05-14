@@ -173,7 +173,7 @@ if(run){
 
 #### Choose whether or not to plot POUs or KUDs
 type <- c("kud", "pou")
-type <- type[1]
+type <- type[2]
 
 #### Choose whether or not to focus on a small selection of arrays
 dat_sim_array_info_2 <- dat_sim_array_info
@@ -186,7 +186,7 @@ dat_sim_array_info_2 <-
   dplyr::arrange(arrangement, n_receivers, clustering, n_clusters)
 dat_sim_array_info_2$label <- 1:nrow(dat_sim_array_info_2)
 sbt <- c("sbt", "full")
-sbt <- sbt[1]
+sbt <- sbt[2]
 if(sbt == "sbt") {
   array_ids <- dat_sim_array_info_2$index[which(dat_sim_array_info_2$n_receivers %in% c(5, 25) &
                                           (is.na(dat_sim_array_info_2$clustering) |
@@ -230,7 +230,7 @@ if(type == "pou") add_paths$lwd <- 0.1
 lapply(array_ids, function(array_id){
 
   #### Get array/path details
-  # array_id <- 12
+  # array_id <- 7
   print(array_id)
   array                  <- dat_sim_arrays[[array_id]]
   array_info             <- dat_sim_array_info_2[dat_sim_array_info_2$index == array_id, ]
@@ -279,7 +279,7 @@ lapply(array_ids, function(array_id){
                                      crop_spatial = TRUE)
 
   #### Plot (2): path (between detections)
-  map_param$add_rasters$x <- estimates_for_array[[type]]$sim
+  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$sim)
   add_paths$x             <- path_for_array$xy_mat_on_grid_within_acoustics
   map_param$add_paths     <- add_paths
   do.call(prettyGraphics::pretty_map, map_param)
@@ -293,7 +293,7 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (3): COA
-  map_param$add_rasters$x <- estimates_for_array[[type]]$coa
+  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$coa)
   if(is.null(map_param$add_rasters$x)) map_param$add_rasters <- NULL
   map_param$add_points    <- list(x = estimates_for_array$coa_xy$x, estimates_for_array$coa_xy$y, pch = 17, bg = "black")
   do.call(prettyGraphics::pretty_map, map_param)
@@ -310,7 +310,7 @@ lapply(array_ids, function(array_id){
 
   #### Plot (4): ACPF
   map_param$add_rasters$plot_method <- plot_raster_img
-  map_param$add_rasters$x <- estimates_for_array[[type]]$acpf
+  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$acpf)
   do.call(prettyGraphics::pretty_map, map_param)
   add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
@@ -322,7 +322,7 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (5): ACDCPF
-  map_param$add_rasters$x <- estimates_for_array[[type]]$acdcpf
+  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$acdcpf)
   do.call(prettyGraphics::pretty_map, map_param)
   add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL

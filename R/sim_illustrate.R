@@ -81,7 +81,8 @@ if(run){
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
   out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acpf_pairs_pou <- pf_plot_map(out_acpf_pairs_unq, map = grid)
-  out_acpf_pairs_ud  <- pf_kud(out_acpf_pairs_pou,
+  if(scale) out_acpf_pairs_pou <- scale_raster(out_acpf_pairs_pou)
+  out_acpf_pairs_ud  <- pf_kud(pf_plot_map(out_acpf_pairs_unq, map = grid),
                                sample_size = 100,
                                estimate_ud = adehabitatHR::kernelUD,
                                grid = kud_grid)
@@ -96,7 +97,8 @@ if(run){
   out_acdcpf_pairs     <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
   out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acdcpf_pairs_pou <- pf_plot_map(out_acdcpf_pairs_unq, map = grid)
-  out_acdcpf_pairs_ud  <- pf_kud(out_acdcpf_pairs_pou,
+  if(scale) out_acdcpf_pairs_pou <- scale_raster(out_acdcpf_pairs_pou)
+  out_acdcpf_pairs_ud  <- pf_kud(pf_plot_map(out_acdcpf_pairs_unq, map = grid),
                                  sample_size = 100,
                                  estimate_ud = adehabitatHR::kernelUD,
                                  grid = kud_grid)
@@ -105,7 +107,6 @@ if(run){
   out_acdcpf_paths_ll  <- pf_loglik(out_acdcpf_paths)
   out_acdcpf_paths_sbt <-
     out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
-
 }
 
 
@@ -197,7 +198,7 @@ mtext(side = 3, paste0(spaces, "(movement time series)"), adj = adj_2 - 0.01, ce
 
 #### Plot DC algorithm(s)
 ## DC
-pretty_map(add_rasters = list(x = out_dc_s$map, plot_method = plot_raster_img),
+pretty_map(add_rasters = list(x = white_out(out_dc_s$map), plot_method = plot_raster_img),
            pretty_axis_args = paa)
 add_contour(out_dc_s$map)
 mtext(side = 3, "C", adj = adj_1, font = 2, cex = cex_main)
@@ -218,7 +219,8 @@ mtext(side = 3, paste0(spaces, "(DCPF)"), adj = adj_2, cex = cex_main)
 
 #### Plot AC algorithm(s)
 ## AC
-prettyGraphics::pretty_map(add_rasters = list(x = out_ac_s$map, plot_method = plot_raster_img),
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_ac_s$map),
+                                              plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -235,17 +237,17 @@ pf_plot_2d(out_acpf_paths_sbt,
 mtext(side = 3, "G", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [path])"), adj = adj_2, cex = cex_main)
 ## AC particles
-mp <- pf_plot_map(out_acpf_pairs_unq,
-                  add_rasters = list(plot_method = plot_raster_img),
-                  map = grid, scale = "sum",
-                  xlim = xlim, ylim = ylim,
-                  pretty_axis_args = paa,
-                  crop_spatial = TRUE)
-add_contour(mp)
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acpf_pairs_pou),
+                                              plot_method = plot_raster_img),
+                           xlim = xlim, ylim = ylim,
+                           pretty_axis_args = paa,
+                           crop_spatial = TRUE)
+add_contour(out_acpf_pairs_pou)
 mtext(side = 3, "I", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [POU])"), adj = adj_2, cex = cex_main)
 ## AC UD
-prettyGraphics::pretty_map(add_rasters = list(x = out_acpf_pairs_ud, plot_method = plot_raster_img),
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acpf_pairs_ud),
+                                              plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -255,7 +257,8 @@ mtext(side = 3, paste0(spaces, "(ACPF [KUD])"), adj = adj_2, cex = cex_main)
 
 #### Plot ACDC algorithm(s)
 ## ACDC
-prettyGraphics::pretty_map(add_rasters = list(x = out_acdc_s$map, plot_method = plot_raster_img),
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdc_s$map),
+                                              plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -272,17 +275,17 @@ pf_plot_2d(out_acdcpf_paths_sbt,
 mtext(side = 3, "H", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [path])"), adj = adj_2, cex = cex_main)
 ## ACDC particles
-mp <- pf_plot_map(out_acdcpf_pairs_unq,
-                  add_rasters = list(plot_method = plot_raster_img),
-                  map = grid, scale = "sum",
-                  xlim = xlim, ylim = ylim,
-                  pretty_axis_args = paa,
-                  crop_spatial = TRUE)
-add_contour(mp)
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdcpf_pairs_pou),
+                                              plot_method = plot_raster_img),
+                           xlim = xlim, ylim = ylim,
+                           pretty_axis_args = paa,
+                           crop_spatial = TRUE)
+add_contour(out_acdcpf_pairs_pou)
 mtext(side = 3, "J", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [POU])"), adj = adj_2, cex = cex_main)
 ## ACDC UD
-prettyGraphics::pretty_map(add_rasters = list(x = out_acdcpf_pairs_ud, plot_method = plot_raster_img),
+prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdcpf_pairs_ud),
+                                              plot_method = plot_raster_img),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
