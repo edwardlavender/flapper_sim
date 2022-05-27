@@ -62,9 +62,6 @@ used on a few occasions.
             results from the analyses of these simulated data are
             stored, is also set up;
     
-      - `sim_analyse.R` analyses the simulated movement path(s) and
-        methods for examining emergent patterns of space use.
-    
       - `sim_workhorse.R` provides methods for implementing the
         `flapper` family of algorithms to simulated data.
     
@@ -93,19 +90,16 @@ this repository.
 1.  Run `sim_data.R` to simulate datasets, customising the array designs
     and movement path parameters as necessary\*.
 
-2.  Examine methods for inferring patterns of space use for the
-    simulated movement path(s) via `sim_analyse.R`.
-
-3.  Implement algorithms for a specific movement path and array
+2.  Implement algorithms for a specific movement path and array
     combination via `sim_workhorse.R` or for all movement paths and
     array designs via `sim_implement.R`\*. Note that for the former, the
     movement path and array ID need to be specified at the top of the
     script.
 
-4.  Examine and synthesise outputs via `sim_illustrate.R`,
+3.  Examine and synthesise outputs via `sim_illustrate.R`,
     `sim_synthesise.R` and `sim_wall_time.R`.
 
-5.  Examine outputs in `data/` and `fig/`, such as the example figure
+4.  Examine outputs in `data/` and `fig/`, such as the example figure
     below.
 
 \*For the first implementation of this project, ensure that all sections

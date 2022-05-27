@@ -43,8 +43,6 @@ Simulations and analyses are written in `R` and organised as an `R Project`. For
         * For each movement path and array design, observations arising from movement---namely, detections at receivers---are simulated via `flapper::sim_detections()`;
         * A directory system within `data` (see below), within which results from the analyses of these simulated data are stored, is also set up;
         
-    * `sim_analyse.R` analyses the simulated movement path(s) and methods for examining emergent patterns of space use. 
-        
     * `sim_workhorse.R` provides methods for implementing the `flapper` family of algorithms to simulated data.
     
     * `sim_implement.R` is a wrapper that, for each simulated movement path and array design, implements `sim_workhorse` to generate outputs. 
@@ -65,13 +63,11 @@ Note that `data/` and `fig/` are not included in the online version of this repo
 
 1. Run `sim_data.R` to simulate datasets, customising the array designs and movement path parameters as necessary*. 
 
-2. Examine methods for inferring patterns of space use for the simulated movement path(s) via `sim_analyse.R`. 
+2. Implement algorithms for a specific movement path and array combination via `sim_workhorse.R` or for all movement paths and array designs via `sim_implement.R`*. Note that for the former, the movement path and array ID need to be specified at the top of the script.
 
-3. Implement algorithms for a specific movement path and array combination via `sim_workhorse.R` or for all movement paths and array designs via `sim_implement.R`*. Note that for the former, the movement path and array ID need to be specified at the top of the script.
+3. Examine and synthesise outputs via `sim_illustrate.R`, `sim_synthesise.R` and `sim_wall_time.R`. 
 
-4. Examine and synthesise outputs via `sim_illustrate.R`, `sim_synthesise.R` and `sim_wall_time.R`. 
-
-3. Examine outputs in `data/` and `fig/`, such as the example figure below. 
+4. Examine outputs in `data/` and `fig/`, such as the example figure below. 
 
 *For the first implementation of this project, ensure that all sections that create data are set to TRUE rather than FALSE (in which case previously created files are loaded and used for analysis). 
 
