@@ -117,14 +117,14 @@ if(simulate_array){
   dat_sim_arrays <- readRDS("./data/arrays/dat_sim_arrays.rds")
 }
 
-#### Visualise arrays with detection centroids given some detection range
+#### Visualise arrays with detection containers given some detection range
 pp <- par(mfrow = prettyGraphics::par_mf(nrow(dat_sim_array_info)))
 lapply(dat_sim_arrays, function(array){
   # array <- dat_sim_arrays[[1]]
-  centroids <- get_detection_centroids(xy = array$array$xy, detection_range = 300,
+  containers <- get_detection_containers(xy = array$array$xy, detection_range = 300,
                           boundaries = area,
                           byid = TRUE, plot = FALSE)
-  raster::plot(centroids, xlim = ext[1:2], ylim = ext[3:4])
+  raster::plot(containers, xlim = ext[1:2], ylim = ext[3:4])
   raster::lines(ext, col = "royalblue")
 }) %>% invisible()
 par(pp)

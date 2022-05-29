@@ -74,37 +74,37 @@ if(nrow(out_coa) >= 5){
 ######################################
 #### Flapper algorithm: array-specific set up
 
-#### Define acoustic centroids
-make_detection_centroids <- TRUE
-if(make_detection_centroids){
+#### Define acoustic containers
+make_detection_containers <- TRUE
+if(make_detection_containers){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, data.frame(receiver_id = 1:length(rxy)))
-  detection_centroids <- acs_setup_centroids(xy = rxy,
+  detection_containers <- acs_setup_containers(xy = rxy,
                                             detection_range = det_rng,
                                             boundaries = area,
                                             resolution = 1000,
                                             plot = FALSE,
                                             verbose = TRUE
                                             )
-  saveRDS(detection_centroids, paste0(con_root, "detection_centroids.rds"))
+  saveRDS(detection_containers, paste0(con_root, "detection_containers.rds"))
 } else {
-  detection_centroids <- readRDS(paste0(con_root, "detection_centroids.rds"))
+  detection_containers <- readRDS(paste0(con_root, "detection_containers.rds"))
 }
 
-#### Detection centroid overlaps
+#### Detection container overlaps
 make_detection_centriods_overlaps <- TRUE
 if(make_detection_centriods_overlaps){
-  centroids_dets <- get_detection_centroids(xy = array$array$xy,
+  containers_dets <- get_detection_containers(xy = array$array$xy,
                                             detection_range = det_rng,
                                             boundaries = area,
                                             byid = TRUE, resolution = 1000)
-  centroids_df <- moorings
-  row.names(centroids_df) <- names(centroids_dets)
-  centroids_dets <- sp::SpatialPolygonsDataFrame(centroids_dets, centroids_df)
-  overlaps <- get_detection_centroids_overlap(centroids =  centroids_dets)
-  saveRDS(overlaps, paste0(con_root, "detection_centroids_overlaps.rds"))
+  containers_df <- moorings
+  row.names(containers_df) <- names(containers_dets)
+  containers_dets <- sp::SpatialPolygonsDataFrame(containers_dets, containers_df)
+  overlaps <- get_detection_containers_overlap(containers =  containers_dets)
+  saveRDS(overlaps, paste0(con_root, "detection_containers_overlaps.rds"))
 } else {
-  overlaps <- readRDS(paste0(con_root, "detection_centroids_overlaps.rds"))
+  overlaps <- readRDS(paste0(con_root, "detection_containers_overlaps.rds"))
 }
 
 #### Define detection kernels
@@ -113,7 +113,7 @@ if(make_detection_kernels){
   rxy <- array$array$xy
   rxy <- sp::SpatialPointsDataFrame(rxy, moorings)
   kernels <- acs_setup_detection_kernels(xy = rxy,
-                                         centroids = detection_centroids,
+                                         containers = detection_containers,
                                          overlaps = overlaps,
                                          calc_detection_pr = calc_dpr,
                                          bathy = grid)
@@ -164,7 +164,7 @@ if(run_ac){
   out_ac <- ac(acoustics = acoustics,
                step = step,
                bathy = grid,
-               detection_centroids = detection_centroids,
+               detection_containers = detection_containers,
                detection_kernels = kernels, detection_kernels_overlap = overlaps, detection_time_window = clock_drift,
                normalise = TRUE,
                mobility = mob_on_grid,
@@ -195,7 +195,7 @@ if(run_acdc){
   out_acdc <- acdc(acoustics = acoustics,
                    archival = archival,
                    bathy = grid,
-                   detection_centroids = detection_centroids,
+                   detection_containers = detection_containers,
                    detection_kernels = kernels, detection_kernels_overlap = overlaps, detection_time_window = clock_drift,
                    normalise = TRUE,
                    mobility = mob_on_grid,
