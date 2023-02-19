@@ -18,7 +18,7 @@
 ######################################
 #### Compute KUDs
 
-# Suppress setup once run once for quick modificaiton of figures
+# Suppress setup once run once for quick modification of figures
 run_setup <- FALSE
 if(run_setup){
 

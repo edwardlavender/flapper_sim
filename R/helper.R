@@ -11,7 +11,7 @@
 
 ######################################
 ######################################
-#### Register suggested dependences with renv
+#### Register suggested dependencies with renv
 
 # Flag commonmark/(r)markdown packages (for README documentation)
 if(!requireNamespace("commonmark", quietly = TRUE))
