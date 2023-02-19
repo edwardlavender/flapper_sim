@@ -3,33 +3,46 @@
 #### sim_implement.R
 
 #### This code
-# Implements the sim_workhorse script for all movement paths/array designs.
-# For path_1, this takes ~ 147 minutes.
+# Implements the sim_workhorse.R script for all movement paths/array designs.
 
 #### Steps preceding this code
-# Implement sim_data.R
+source("./R/sim_data.R")
+try(dev.off(), silent = TRUE)
+
+#### Extensions
+# 1) To improve speed, implement this script in parallel
 
 
 ######################################
 ######################################
 #### Implementation
 
-sink("./data/estimates/log_sim_implement.txt")
+cat("\014")
+cout <- "./data/estimates/log_sim_implement.txt"
+if (file.exists(cout)) unlink(cout)
+sink(cout)
 cat("log_sim_implement.txt")
-breaker <- "-----------------------------------------------------------------------\n"
+ns     <- "\n \n"
+spaces <- function() cat(ns)
+breaker  <- function() cat(paste0(paste0(rep("-", 150), collapse = ""), "\n"))
 t1 <- Sys.time()
 lapply(1:length(dat_sim_paths), function(path_id){
-
-  cat("\n \n \n")
-  cat(breaker); cat(breaker); cat(breaker); cat(breaker); cat(breaker);
-  cat(paste("path", path_id, "\n \n \n"))
-
+  spaces()
+  invisible(replicate(3, breaker()))
+  cat(paste0("path ", path_id, ns))
   lapply(1:length(dat_sim_arrays), function(array_id){
-
-    cat("\n \n \n")
-    cat(breaker); cat(breaker);
-    cat(paste("array", array_id, "\n \n \n"))
-    source("./R/sim_workhorse.R", local = TRUE)
+    spaces()
+    invisible(replicate(2, breaker()))
+    cat(paste0("path ", path_id, ": array ", array_id, ns))
+    lapply(alg_param, function(alg) {
+      spaces()
+      invisible(replicate(1, breaker()))
+      cat(paste0("path ", path_id, ": array ", array_id, ": implementation ", alg$id, ns))
+      tictoc::tic()
+      source("./R/sim_workhorse.R", local = TRUE)
+      spaces()
+      tictoc::toc()
+    })
   })
 })
 sink()
