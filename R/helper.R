@@ -13,6 +13,13 @@
 ######################################
 #### Function definitions
 
+#### Read raster (if exists)
+read_raster_if_exists <- function(file, read_all = TRUE){
+  if (file.exists(file)) {
+    raster::readAll(raster::raster(file))
+  } else NULL
+}
+
 #### Scale raster (to a maximum value of one)
 scale_raster <- function(x) {
   sm <- raster::cellStats(x, "sum")
@@ -41,7 +48,8 @@ plot_raster <-
 add_contour <-
   function(x, p = 0.5, ext = NULL, lwd = 0.5,...){
     if(!is.null(ext)) x <- raster::crop(x, ext)
-    x <- spatialEco::raster.vol(x, p = p, sample = FALSE)
+    x <- spatialEco::raster.vol(terra::rast(x), p = p, sample = FALSE)
+    x <- raster::raster(x)
     raster::contour(x, nlevels = 1, drawlabels = FALSE, add = TRUE, lwd = lwd,...)
     return(invisible())
   }
