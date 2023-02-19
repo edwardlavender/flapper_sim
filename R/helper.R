@@ -11,6 +11,19 @@
 
 ######################################
 ######################################
+#### Register suggested dependences with renv
+
+# Flag commonmark/(r)markdown packages (for README documentation)
+if(!requireNamespace("commonmark", quietly = TRUE))
+  renv::install("commonmark")
+if(!requireNamespace("markdown", quietly = TRUE))
+  renv::install("markdown")
+if(!requireNamespace("rmarkdown", quietly = TRUE))
+  renv::install("rmarkdown")
+
+
+######################################
+######################################
 #### Function definitions
 
 #### Read raster (if exists)
