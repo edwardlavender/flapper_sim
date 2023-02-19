@@ -1533,6 +1533,16 @@
       "Hash": "2ebe8c2ec200da649738b0fc35a9b1a1",
       "Requirements": []
     },
+    "plyr": {
+      "Package": "plyr",
+      "Version": "1.8.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d744387aef9047b0b48be2933d78e862",
+      "Requirements": [
+        "Rcpp"
+      ]
+    },
     "png": {
       "Package": "png",
       "Version": "0.1-8",
@@ -2381,6 +2391,27 @@
       "Repository": "CRAN",
       "Hash": "1fe17157424bb09c48a8b3b550c753bc",
       "Requirements": []
+    },
+    "utils.add": {
+      "Package": "utils.add",
+      "Version": "0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "utils.add",
+      "RemoteUsername": "edwardlavender",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "709260ea3d9f5c33cd8210ec1d4139bf2790386e",
+      "Hash": "a70428042c3c0c12df01912742e549eb",
+      "Requirements": [
+        "dplyr",
+        "lubridate",
+        "plyr",
+        "prettyGraphics",
+        "rlist",
+        "stringi",
+        "tidyr"
+      ]
     },
     "vctrs": {
       "Package": "vctrs",
