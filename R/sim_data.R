@@ -3,9 +3,10 @@
 #### sim_data.R
 
 #### This code
-# Simulates arrays, a movement paths and movement
-# ... for evaluating the performance of algorithms
-# ... for inferring patterns of space use.
+# Simulates array(s), movement path(s) and movement tracks
+# ... for evaluating the performance of the flapper algorithms
+# ... for inferring patterns of space use
+# ... and exploring their sensitivity to different parameters.
 
 #### Steps preceding this code
 # NA.
@@ -24,7 +25,7 @@ library(flapper)
 source("./R/helper.R")
 
 #### Global parameters
-seed <- 20210828
+seed       <- 20210828
 proj_wgs84 <- sp::CRS("+init=epsg:4326")
 
 
@@ -45,7 +46,6 @@ raster::lines(area)
 area_size <- raster::area(area) # m2
 area_size_km <- area_size * 1/(1000^2)
 area_size_km
-
 # crop_from_click(gebco)
 ext <- raster::extent(area)
 gebco <- raster::crop(gebco, ext)
@@ -117,17 +117,22 @@ if(simulate_array){
   dat_sim_arrays <- readRDS("./data/arrays/dat_sim_arrays.rds")
 }
 
+#### Define the detection range
+true_detection_range <- 300
+
 #### Visualise arrays with detection containers given some detection range
-pp <- par(mfrow = prettyGraphics::par_mf(nrow(dat_sim_array_info)))
-lapply(dat_sim_arrays, function(array){
-  # array <- dat_sim_arrays[[1]]
-  containers <- get_detection_containers(xy = array$array$xy, detection_range = 300,
-                          boundaries = area,
-                          byid = TRUE, plot = FALSE)
-  raster::plot(containers, xlim = ext[1:2], ylim = ext[3:4])
-  raster::lines(ext, col = "royalblue")
-}) %>% invisible()
-par(pp)
+if (FALSE) {
+  pp <- par(mfrow = prettyGraphics::par_mf(nrow(dat_sim_array_info)))
+  lapply(dat_sim_arrays, function(array){
+    # array <- dat_sim_arrays[[1]]
+    containers <- get_detection_containers(xy = array$array$xy, detection_range = true_detection_range,
+                                           boundaries = area,
+                                           byid = TRUE, plot = FALSE)
+    raster::plot(containers, xlim = ext[1:2], ylim = ext[3:4])
+    raster::lines(ext, col = "royalblue")
+  }) %>% invisible()
+  par(pp)
+}
 
 #### Define study duration
 # We will keep this as small as possible for simulation speed.
@@ -154,7 +159,7 @@ for(i in 1:length(dat_sim_arrays)){
   array <- dat_sim_arrays[[i]]
   dat_sim_array_info_tidy$n_receivers[i] <- length(array$array$xy)
   dat_sim_array_info_tidy$cov_m2[i] <-
-    get_detection_area_sum(array$array$xy, detection_range = 300, boundaries = ext)
+    get_detection_area_sum(array$array$xy, detection_range = true_detection_range, boundaries = ext)
   dat_sim_array_info_tidy$cov_pc[i] <- (dat_sim_array_info_tidy$cov_m2[i]/area_size_km) * 100
 }
 # Tidy existing columns
@@ -195,16 +200,16 @@ dat_sim_mvt_info <- list("1" = list())
 #### Path sim (1)
 
 ## Define movement model
-mob_sim <- 500
+true_mobility <- 500
 calc_mpr <- function(distance,...) {
   pr <- stats::plogis(7.5 + distance * -0.025)
-  pr[distance > mob_sim] <- 0
+  pr[distance > true_mobility] <- 0
   return(pr)
 }
-plot(1:mob_sim, calc_mpr(1:mob_sim), ylim = c(0, 1))
+plot(1:true_mobility, calc_mpr(1:true_mobility), ylim = c(0, 1))
 
 ## Simulate step lengths from movement model
-steps <- data.frame(distance = seq(0, mob_sim, length.out = 1e4))
+steps <- data.frame(distance = seq(0, true_mobility, length.out = 1e4))
 steps$pr <- calc_mpr(steps$distance)
 sim_step_every_2_mins <- function(...,data = steps, size = 1) {
   sample(x = data$distance, size = size, prob = data$pr)
@@ -314,12 +319,11 @@ if(simulate_archival){
 #### Acoustic time series
 
 #### Define detection probability function based on distance
-detection_range <- 300
 calc_dpr <-
   function(x){
-    ifelse(x <= detection_range, stats::plogis(3 + -0.03 * x), 0)
+    ifelse(x <= true_detection_range, stats::plogis(3 + -0.03 * x), 0)
   }
-plot(1:detection_range, calc_dpr(1:detection_range), type = "l")
+plot(1:true_detection_range, calc_dpr(1:true_detection_range), type = "l")
 
 #### Simulate acoustic time series for each path and array design
 simulate_detections  <- FALSE
@@ -364,80 +368,278 @@ if(simulate_detections){
 
 ######################################
 ######################################
-#### Examine simulated patterns of space use
+#### Examine simulated data and emergent properties
 
-#### Estimate UD for simulated data
-pp <- par(mfrow = prettyGraphics::par_mf(length(dat_sim_paths)))
-dat_sim_paths_ud <- lapply(dat_sim_paths, function(dat_sim_path){
-  # Get UD
-  # dat_sim_path <- dat_sim_paths[[1]]
-  dat_sim_path_spdf <- sp::SpatialPointsDataFrame(
-    dat_sim_path$xy_mat_on_grid,
-    data = data.frame(ID = factor(rep(1, nrow(dat_sim_path$xy_mat)))),
-    proj4string = raster::crs(grid))
-  dat_sim_path_ud <- adehabitatHR::kernelUD(xy = dat_sim_path_spdf, grid = 500)
-  dat_sim_path_ud <- raster::raster(dat_sim_path_ud[[1]])
-  # Plot UD for simulated data
-  raster::plot(dat_sim_path_ud)
-  prettyGraphics::add_sp_path(dat_sim_path$xy_mat, length = 0.01, lwd = 0.1)
-  return(dat_sim_path_ud)
-})
+if (FALSE) {
+
+  #### Examine frequency of detections
+  pp <- par(mfrow = c(3, 5), mar = c(1, 1, 1, 1))
+  lapply(dat_sim_detections_by_path, function(dat_sim_detections_by_array){
+    lapply(dat_sim_detections_by_array, function(dat_sim_detections){
+      # dat_sim_detections <- dat_sim_detections_by_path[[1]][[1]]
+      prettyGraphics::pretty_line(dat_sim_detections$timestamp,
+                                  pretty_axis_args =
+                                    list(side = 1,
+                                         axis = list(at = utils.add::seq_range(range(study_period), length.out = 5)))
+      )
+    })
+  }) %>% invisible()
+  par(pp)
+
+  #### Estimate UD for simulated data
+  pp <- par(mfrow = prettyGraphics::par_mf(length(dat_sim_paths)))
+  dat_sim_paths_ud <- lapply(dat_sim_paths, function(dat_sim_path){
+    # Get UD
+    # dat_sim_path <- dat_sim_paths[[1]]
+    dat_sim_path_spdf <- sp::SpatialPointsDataFrame(
+      dat_sim_path$xy_mat_on_grid,
+      data = data.frame(ID = factor(rep(1, nrow(dat_sim_path$xy_mat)))),
+      proj4string = raster::crs(grid))
+    dat_sim_path_ud <- adehabitatHR::kernelUD(xy = dat_sim_path_spdf, grid = true_mobility)
+    dat_sim_path_ud <- raster::raster(dat_sim_path_ud[[1]])
+    # Plot UD for simulated data
+    raster::plot(dat_sim_path_ud)
+    prettyGraphics::add_sp_path(dat_sim_path$xy_mat, length = 0.01, lwd = 0.1)
+    return(dat_sim_path_ud)
+  })
+
+}
 
 
 ######################################
 ######################################
-#### Set up algorithms (shared param)
+#### Define algorithm parameters
 
-#### Define study area
+######################################
+#### Method
+
+# We will implement the algorithms with the 'correct' parameters as well as
+# 'incorrect' ones use to examine algorithm sensitivity.
+# Here, we define the list of algorithm parameters. For each simulated dataset
+# we'll define a set of folders in which to store the results of the algorithms
+# as applied with a particular set of parameters.
+
+
+######################################
+#### Define 'simple' parameters
+
+#### Study area
 # Define above.
 
-#### Set numeric algorithm parameters
+#### Step length
 step             <- 120
-det_rng          <- 300      # as defined previously because on the scale of the grid
+
+#### Clock drift
 clock_drift      <- 5
-mob_on_grid      <- mob_sim + raster::res(grid)[1] # mobility is higher than simulated when expressed at the resolution of the grid
 
-#### Define movement model over grid
-# [with a relaxation of the maximum mobility to allow for the effects of grid resolution]
-calc_mpr_on_grid <- function(distance,...) {
-  pr <- stats::plogis(7.5 + distance * -0.025)
-  pr[distance > mob_on_grid] <- 0 # relaxation of maximum mobility
-  return(pr)
+#### Helper function
+adjust_beta <- function(true_beta, true_param, param){
+  true_beta * true_param/param
 }
-plot(1:mob_on_grid, calc_mpr_on_grid(1:mob_on_grid), type = "l")
-lines(1:mob_on_grid, calc_mpr(1:mob_on_grid), col = "red")
 
-#### Prepare movement time series
-## Examine frequency of detections
-pp <- par(mfrow = c(3, 5), mar = c(1, 1, 1, 1))
-lapply(dat_sim_detections_by_path, function(dat_sim_detections_by_array){
-  lapply(dat_sim_detections_by_array, function(dat_sim_detections){
-    # dat_sim_detections <- dat_sim_detections_by_path[[1]][[1]]
-    prettyGraphics::pretty_line(dat_sim_detections$timestamp,
-                                pretty_axis_args =
-                                  list(side = 1,
-                                       axis = list(at = utils.add::seq_range(range(study_period), length.out = 5)))
-                                )
-  })
-}) %>% invisible()
+
+######################################
+#### Define detection probability parameters
+
+#### Define detection probability calculator wrapper
+# This function takes the true detection range as 300 m
+# And, if this is supplied, returns the detection probability function
+# used for the simulations above. If another detection range is inputted,
+# the detection range and beta parameters in the detection probability
+# function are adjusted accordingly and an updated function is returned
+true_beta_detection <- -0.03
+calc_dprw <- function(distance, detection_range, verbose = FALSE){
+  beta <- adjust_beta(true_beta_detection, true_detection_range, detection_range)
+  if (verbose)
+    cat(paste0("detection range: ", detection_range, "; beta: ", beta))
+  f <- function(distance)
+    ifelse(distance <= detection_range, stats::plogis(3 + beta * distance), 0)
+  if (!missing(distance)) {
+    f(distance)
+  } else f
+}
+
+# Visualise examples
+# Selected ('true') detection probability parameters
+# Underestimation: half detection range (half), increase gradient (double beta)
+# Overestimation: double detection range (double), reduce gradient (half beta)
+dist <- 1:1000
+plot(dist, calc_dprw(dist, 300, verbose = TRUE), type = "l")
+lines(dist, calc_dprw(dist, 150, verbose = TRUE), type = "l")
+lines(dist, calc_dprw(dist, 600, verbose = TRUE), type = "l")
+
+
+######################################
+#### Define mobility parameters
+
+#### Define movement probability calculator wrapper
+# Note that a suitable choice for mobility is higher than simulated
+# when expressed at the resolution of the grid
+# And the movement model needs to be relaxed accordingly
+true_beta_mobility <- -0.025
+calc_mprw <- function(distance, mobility, verbose = FALSE) {
+  mobility_on_grid      <- mobility + 75 # raster::res(grid)[1]
+  beta <- adjust_beta(true_beta_mobility, true_mobility, mobility)
+  if (verbose)
+    cat(paste0("mobility: ", mobility, "; beta: ", beta))
+  f <- function(distance, ...) {
+    pr <- stats::plogis(7.5 + beta * distance)
+    # relax movement model by mobility_on_grid:
+    pr[distance > mobility_on_grid] <- 0
+    return(pr)
+  }
+  if (!missing(distance)) {
+    f(distance)
+  } else f
+}
+
+# Visualise examples
+# Selected ('true') detection probability parameters
+# Underestimation: half detection range (half), increase gradient (double beta)
+# Overestimation: double detection range (double), reduce gradient (half beta)
+dist <- 1:1000
+plot(dist, calc_mprw(dist, 500, verbose = TRUE), type = "l")
+lines(dist, calc_mprw(dist, 250, verbose = TRUE), type = "l")
+lines(dist, calc_mprw(dist, 1000, verbose = TRUE), type = "l")
+
+
+######################################
+#### Collect simulation parameters
+
+#### Define parameter combinations of interest
+# * Correct/under/overestimate detection range with 'correct' mobility
+# * Correct/under/overestimate mobility with 'correct' detection range
+# (* Mis-specification of both parameters)
+
+#### Define list of algorithm parameters
+## Define detection ranges and mobilities
+# We will implement the algorithms for different:
+# a) detection ranges (and associated parameters)
+# b) mobility values  (and associated models)
+# We only need to specify the ranges of these parameters
+# ... and other parameters in the model are changed proportionally
+# ... via the calc_dprw() and calc_mprw() 'wrapper' functions
+try_detection_ranges <- c(true_detection_range, true_detection_range * seq(0.25, 2.5, by = 0.25))
+try_detection_ranges <- try_detection_ranges[!duplicated(try_detection_ranges)]
+try_mobilities       <- c(true_mobility, true_mobility * seq(0.25, 2.5, by = 0.25))
+try_mobilities       <- try_mobilities[!duplicated(try_mobilities)]
+# Check selected combinations of parameters
+alg_param <-
+  rbind(
+    data.frame(detection_range = try_detection_ranges,
+               mobility = true_mobility,
+               is_mpr = FALSE,
+               is_dpr = TRUE),
+    data.frame(detection_range = true_detection_range,
+               mobility = try_mobilities,
+               is_mpr = TRUE,
+               is_dpr = FALSE)
+  ) |>
+  dplyr::mutate(id = paste0(detection_range, "_", mobility),
+                mobility_on_grid = mobility + raster::res(grid)[1],
+                correct = detection_range == true_detection_range & mobility == true_mobility,
+                is_dpr = ifelse(correct, TRUE, is_dpr),
+                is_mpr = ifelse(correct, TRUE, is_mpr))  |>
+  dplyr::filter(!duplicated(id)) |>
+  dplyr::mutate(index = dplyr::row_number()) |>
+  dplyr::select(index, id, is_mpr, is_dpr, correct, detection_range, mobility, mobility_on_grid)
+# Write tidy table
+alg_param |>
+  dplyr::slice(-1L) |>
+  dplyr::mutate(ID = paste0("S3 (", index - 1, ")"),
+                dpr_beta = adjust_beta(true_beta_detection, true_detection_range, detection_range) |>
+                  round(2) |> add_lagging_point_zero(n = 2),
+                dpr_gamma = detection_range,
+                mpr_beta = adjust_beta(true_beta_mobility, true_mobility, mobility)
+                |> round(3) |> add_lagging_point_zero(n = 3),
+                mpr_delta = mobility
+  ) |>
+  dplyr::select(ID,
+                dpr_beta, dpr_gamma,
+                mpr_beta, mpr_delta
+  ) |>
+  write.table("./fig/dat_sim_param.txt",
+              quote = FALSE, row.names = FALSE, na = "", sep = ",")
+# Visualise algorithm parameters
+png("./fig/algorithm_parameters.png",
+    height = 6, width = 10, units = "in", res = 600 )
+pp <- par(mfrow = c(1, 2), oma = c(2, 2, 2, 2))
+pretty_plot(range(alg_param$detection_range), c(0, 1),
+            type = "n", xlab = "", ylab = "")
+lapply(try_detection_ranges, function(rng) {
+  x <- seq(0, rng, length.out = 100)
+  lines(x, calc_dprw(x, rng, verbose = TRUE))
+  points(rng, 0, pch = 21, bg = "black")
+})
+mtext(side = 1, "Distance (m) from receiver location", line = 2)
+mtext(side = 2, "Detection probability", line = 2.5)
+mtext(side = 3, "A", adj = 0, font = 2, cex = 1.1)
+x <- seq(0, true_detection_range, length.out = 100)
+lines(x, calc_dprw(x, true_detection_range), lwd = 3)
+legend("topright",
+       legend = c("'correct' model", expression(gamma)),
+       lwd = c(3, NA),
+       pch = c(NA, 21),
+       pt.bg = c(NA, "black"),
+       bty = "n")
+pretty_plot(range(alg_param$mobility), c(0, 1),
+            type = "n", xlab = "", ylab = "")
+lapply(try_mobilities, function(rng) {
+  x <- seq(0, rng, length.out = 100)
+  lines(x, calc_mprw(x, rng, verbose = TRUE))
+  points(rng, 0, pch = 21, bg = "black")
+})
+x <- seq(0, true_mobility, length.out = 100)
+lines(x, calc_mprw(x, true_mobility), lwd = 3)
+legend("topright",
+       legend = c("'correct' model", expression(Delta(T[1], T[2]))),
+       lwd = c(3, NA),
+       pch = c(NA, 21),
+       pt.bg = c(NA, "black"),
+       bty = "n")
+mtext(side = 1, "Distance (m) from previous location", line = 2)
+mtext(side = 3, "B", adj = 0, font = 2, cex = 1.1)
 par(pp)
+dev.off()
 
-#### Check mobility estimates for each path/array
+# Define list
+alg_param <- split(alg_param, alg_param$index)
+names(alg_param) <- sapply(alg_param, \(elm) elm$id)
+names(alg_param)
+
+
+######################################
+#### Set up directory system
+
+#### Folder structure
+# {dataset}/          {algorithm implementation}/ {algorithm} ->
+# {path_*}/{array_*}/ {alg_imp_*}/ {algorithm}
 
 #### Make folders to store outputs
+clean <- FALSE
+if (clean) unlink(file.path("data", "estimates", "path_1"), recursive = TRUE)
 lapply(1:length(dat_sim_detections_by_path), function(path_id){
-  root_to_path <- paste0("./data/estimates/path", "_", path_id)
+  root_to_path <- file.path("data", "estimates", paste0("path_", path_id))
   dir.create(root_to_path)
   lapply(1:length(dat_sim_arrays), function(array_id){
-    dir.create(paste0(root_to_path, "/array_", array_id))
-    lapply(c("ac", "dc", "acdc", "acpf", "dcpf", "acdcpf"), function(alg){
-      dir.create(paste0(root_to_path, "/array_", array_id, "/", alg, "/"))
+    root_to_array <- file.path(root_to_path, paste0("array_", array_id))
+    dir.create(root_to_array)
+    lapply(names(alg_param), function(alg_id){
+      root_to_alg <- file.path(root_to_array, paste0("alg_imp_", alg_id))
+      dir.create(root_to_alg)
+      lapply(c("ac", "dc", "acdc", "acpf", "dcpf", "acdcpf"), function(alg){
+        dir.create(file.path(root_to_alg, alg))
+        })
+      dir.create(file.path(root_to_alg, "ac", "record"))
+      dir.create(file.path(root_to_alg, "dc", "record"))
+      dir.create(file.path(root_to_alg, "acdc", "record"))
     })
-    dir.create(paste0(root_to_path, "/array_", array_id, "/ac/record/"))
-    dir.create(paste0(root_to_path, "/array_", array_id, "/dc/record/"))
-    dir.create(paste0(root_to_path, "/array_", array_id, "/acdc/record/"))
   })
 }) %>% invisible()
+
+#### Define folder name with the 'correct' outputs (for any given array)
+alg_true     <- paste0(true_detection_range, "_", true_mobility)
+alg_imp_true <- paste0("alg_imp_", true_detection_range, "_", true_mobility)
 
 #### Now proceed to implement 'flapper' algorithms.
 
