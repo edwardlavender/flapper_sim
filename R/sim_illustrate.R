@@ -14,7 +14,7 @@
 #### Setup
 
 #### Run sim_data.R
-# ... okay.
+source("./R/sim_data.R")
 
 run <- TRUE # suppress setup once it has been run once for quick editing of plots (below)
 if(run){
@@ -25,7 +25,7 @@ if(run){
 
   #### Get array/path details
   path_id  <- 1; array_id <- 12
-  con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/")
+  con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/", alg_imp_true, "/")
 
   #### Get associated data
   array      <- dat_sim_arrays[[array_id]]
@@ -61,8 +61,8 @@ if(run){
                  bathy = grid,
                  origin = path$xy_mat_on_grid[1, , drop = FALSE],
                  mobility_from_origin = 1,
-                 mobility = mob_on_grid,
-                 calc_movement_pr = calc_mpr_on_grid)
+                 mobility = alg_param[[alg_true]]$mobility_on_grid,
+                 calc_movement_pr = calc_mprw(mobility = alg_param[[alg_true]]$mobility))
   # Define paths (0.03 mins)
   out_dcpf_paths <- pf_simplify(out_dcpf, max_n_paths = 1000)
   # Define a subset of paths
@@ -87,7 +87,16 @@ if(run){
                                estimate_ud = adehabitatHR::kernelUD,
                                grid = kud_grid)
   if(scale) out_acpf_pairs_ud <- scale_raster(out_acpf_pairs_ud)
-  out_acpf_paths     <- readRDS(paste0(con_root, "acpf/out_acpf_paths.rds"))
+  out_acpf_paths_file <- paste0(con_root, "acpf/out_acpf_paths.rds")
+  if(!file.exists(out_acpf_paths_file)) {
+    out_acpf_paths <- pf_simplify(out_acpf_pairs,
+                                  bathy = grid,
+                                  max_n_copies = NULL,
+                                  max_n_paths = 1000L,
+                                  return = "path"
+    )
+    saveRDS(out_acpf_paths, out_acpf_paths_file)
+  } else out_acpf_paths <- readRDS(out_acpf_paths_file)
   out_acpf_paths_ll  <- pf_loglik(out_acpf_paths)
   out_acpf_paths_sbt <-  out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1], ]
   # ACDC algorithm(s)
@@ -103,7 +112,17 @@ if(run){
                                  estimate_ud = adehabitatHR::kernelUD,
                                  grid = kud_grid)
   if(scale) out_acdcpf_pairs_ud <- scale_raster(out_acdcpf_pairs_ud)
-  out_acdcpf_paths     <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_paths.rds"))
+  out_acdcpf_paths_file <- paste0(con_root, "acdcpf/out_acdcpf_paths.rds")
+  if(!file.exists(out_acdcpf_paths_file)) {
+    out_acdcpf_paths <- pf_simplify(out_acdcpf_pairs,
+                                  bathy = grid,
+                                  max_n_copies = NULL,
+                                  max_n_paths = 1000L,
+                                  return = "path"
+    )
+    saveRDS(out_acdcpf_paths, out_acdcpf_paths_file)
+  } else out_acdcpf_paths <- readRDS(out_acdcpf_paths_file)
+
   out_acdcpf_paths_ll  <- pf_loglik(out_acdcpf_paths)
   out_acdcpf_paths_sbt <-
     out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
