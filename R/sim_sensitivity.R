@@ -131,7 +131,7 @@ type <- type[1]
 # ... set below
 # Algorithm
 algorithm <- c("acpf", "acdcpf")
-algorithm <- algorithm[2]
+algorithm <- algorithm[1]
 # Variable
 variable  <- c("dpr", "mpr")
 variable  <- variable[2]
@@ -268,7 +268,7 @@ lapply(array_ids, function(array_id){
   do.call(prettyGraphics::pretty_map, map_param)
   add_contour(map_param$add_rasters$x, ext = ext)
   map_param$add_rasters$x <- NULL
-  add_textbox$textlist    <- paste0(array_label, "d")
+  add_textbox$textlist    <- paste0(array_label, "c")
   do.call(plotrix::textbox, add_textbox)
   if(array_id == array_ids[1]){
     add_title_1$text <- "Best"
