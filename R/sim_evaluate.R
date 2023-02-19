@@ -1,13 +1,16 @@
 ######################################
 ######################################
-#### sim_synthesis.R
+#### sim_evaluate.R
 
 #### This code:
-# 1) Synthesises outputs of the flapper family of algorithms for different array designs
+# 1) Evaluates outputs of the flapper family of algorithms for different array designs
+# ... when implemented 'correctly' by comparing POU/KUD maps for the simulated path
+# ... to those reconstructed by the COA & flapper family of algorithms
 
 #### Steps preceding this code:
-# 1) Implement sim_data.R
+# 1) Implement sim_data.R (see below)
 # 2) Implement sim_workhorse.R for each array design to generate outputs
+# ... (e.g., via sim_implement.R)
 
 
 ######################################
@@ -15,27 +18,30 @@
 #### Setup
 
 #### Simulate data
-# Run sim_data.R
+source("./R/sim_data.R")
 
 #### Define global param
 path_id   <- 1
 path      <- dat_sim_paths[[1]]
 delta_t   <- "2 hours"
 kud_grid  <- kud_habitat(grid)
-scale_pou <- "max" # scale all maps between 0 and 1 for comparability
+scale_pou <- "max" # scale all maps between 0 and 1 for comparability (as in sim_workhorse.R)
 scale_kud <- "max"
 
 #### Check the number of acoustic detections for each array
 sapply(dat_sim_detections_by_path[[path_id]], function(acc) nrow(acc))
 
 #### POU and KUDs for each array
-run <- FALSE
-if(run){
+estimates_by_array_best_file <-
+  paste0("./data/estimates/path_", path_id, "/estimates_by_array_best.rds")
+if(!file.exists(estimates_by_array_best_file)){
+
+  tictoc::tic()
   estimates_by_array <- lapply(1:length(dat_sim_arrays), function(array_id){
 
     #### Get array/path details
     # array_id <- 10
-    con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/")
+    con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/", alg_imp_true, "/")
     print(array_id)
 
     #### Get associated data
@@ -44,7 +50,7 @@ if(run){
     acoustics  <- dat_sim_detections_by_path[[path_id]][[array_id]]
     moorings   <- dat_sim_moorings[[array_id]]
 
-    #### Process simulated time series:
+    #### Process simulated time series
     acoustics$receiver_id <- as.integer(as.character(acoustics$receiver_id))
     archival$index <- 1:nrow(archival)
     archival <- archival[archival$timestamp >= min(acoustics$timestamp) &
@@ -131,40 +137,21 @@ if(run){
       }
     }
 
-    #### Load particles samples (processed to exclude dead ends)
-    out_acpf_pairs   <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
-    out_acdcpf_pairs <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
+    #### ACPF and ACDCPF maps
+    acpf_pou   <- raster::raster(paste0(con_root, "acpf/out_acpf_pou.tif"))
+    acpf_kud   <- raster::raster(paste0(con_root, "acpf/out_acpf_kud.tif"))
+    acdcpf_pou <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_pou.tif"))
+    acdcpf_kud <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_kud.tif"))
 
-    #### Simplify particle histories to retain unique particles
-    out_acpf_pairs_unq   <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
-    out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
-
-    #### Get pou
-    acpf_pou   <- pf_plot_map(out_acpf_pairs_unq, grid, scale = scale_pou)
-    acdcpf_pou <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = scale_pou)
-
-    #### Get KUDs
-    acpf_kud   <- pf_kud(acpf_pou,
-                         sample_size = 100,
-                         grid = kud_grid)
-    acpf_kud   <- acpf_kud/raster::cellStats(acpf_kud, scale_kud)
-    acdcpf_kud <- pf_kud(acdcpf_pou,
-                         sample_size = 100,
-                         grid = kud_grid)
-    acdcpf_kud <- acdcpf_kud/raster::cellStats(acdcpf_kud, scale_kud)
-
-    #### Return POU as a list
-    out <- list(path = path, coa_xy = out_coa,
-                pou = list(sim = path_pou, coa = coa_pou, acpf = acpf_pou, acdcpf = acdcpf_pou),
-                kud = list(sim = path_kud, coa = coa_kud, acpf = acpf_kud, acdcpf = acdcpf_kud)
-                )
-    return(out)
-
+    #### Return list
+    list(path = path, coa_xy = out_coa,
+         pou = list(sim = path_pou, coa = coa_pou, acpf = acpf_pou, acdcpf = acdcpf_pou),
+         kud = list(sim = path_kud, coa = coa_kud, acpf = acpf_kud, acdcpf = acdcpf_kud)
+    )
   })
-  save <- FALSE
-  if(save) saveRDS(estimates_by_array, paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))
-
-} else estimates_by_array <- readRDS(paste0("./data/estimates/path_", path_id, "/estimates_by_array.rds"))
+  tictoc::toc()
+  saveRDS(estimates_by_array, estimates_by_array_best_file)
+} else estimates_by_array <- readRDS(estimates_by_array_best_file)
 
 
 ######################################
@@ -173,7 +160,7 @@ if(run){
 
 #### Choose whether or not to plot POUs or KUDs
 type <- c("kud", "pou")
-type <- type[2]
+type <- type[1]
 
 #### Choose whether or not to focus on a small selection of arrays
 dat_sim_array_info_2 <- dat_sim_array_info
@@ -201,7 +188,7 @@ if(sbt == "sbt") {
 
 #### Set up image
 save_png <- TRUE
-if(save_png) png(paste0("./fig/path_", path_id, "_array_comparison_", type, "_", sbt, ".png"),
+if(save_png) png(paste0("./fig/path_", path_id, "_array_evaluation_", type, "_", sbt, ".png"),
                  height = height, width = width, units = "in", res = 600)
 pp <- par(mfrow = c(length(array_ids), width), oma = c(1, 1, 3, 1), mar = c(0, 0, 0, 0))
 xlim <- ext[1:2]; ylim <- ext[3:4]
@@ -230,7 +217,7 @@ if(type == "pou") add_paths$lwd <- 0.1
 lapply(array_ids, function(array_id){
 
   #### Get array/path details
-  # array_id <- 7
+  # array_id <- 10
   print(array_id)
   array                  <- dat_sim_arrays[[array_id]]
   array_info             <- dat_sim_array_info_2[dat_sim_array_info_2$index == array_id, ]
@@ -246,7 +233,7 @@ lapply(array_ids, function(array_id){
                           archival$timestamp <= max(acoustics$timestamp), ]
 
   #### Plot (1): array
-  array$array$xy_buf <- rgeos::gBuffer(sp::SpatialPoints(array$array$xy), width = detection_range, quadsegs = 1000)
+  array$array$xy_buf <- rgeos::gBuffer(sp::SpatialPoints(array$array$xy), width = true_detection_range, quadsegs = 1000)
   prettyGraphics::pretty_map(add_rasters = add_bathy,
                              add_points = list(x = sp::coordinates(array$array$xy),
                                                pch = 21, col = "black", bg = "black", cex = 1),
