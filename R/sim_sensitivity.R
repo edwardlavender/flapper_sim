@@ -135,6 +135,8 @@ algorithm <- algorithm[1]
 # Variable
 variable  <- c("dpr", "mpr")
 variable  <- variable[2]
+alg_param[, "dpr"] <- alg_param$detection_range
+alg_param[, "mpr"] <- alg_param$mobility
 if(variable == "dpr"){
   variable_under <- c("150_500")
   variable_over  <- c("600_500")
@@ -200,7 +202,7 @@ if(type == "pou") add_paths$lwd <- 0.1
 lapply(array_ids, function(array_id){
 
   #### Get array/path details
-  # array_id <- 10
+  # array_id <- 5
   print(array_id)
   array                  <- dat_sim_arrays[[array_id]]
   array_info             <- dat_sim_array_info_2[dat_sim_array_info_2$index == array_id, ]
@@ -214,6 +216,22 @@ lapply(array_ids, function(array_id){
   acoustics <- dat_sim_detections_by_path[[path_id]][[array_id]]
   archival  <- archival[archival$timestamp >= min(acoustics$timestamp) &
                           archival$timestamp <= max(acoustics$timestamp), ]
+
+  #### Define helper functions
+  add_receivers_to_background <- function(r, id){
+    #if (!is.null(r)){
+      do.call(graphics::points,
+              list(x = sp::coordinates(array$array$xy),
+                   pch = 21, cex = 0.3,
+                   col = scales::alpha("dimgrey", 0.95), bg = scales::alpha("dimgrey", 0.95)))
+    #}
+  }
+  add_scale_bar <- function(id){
+    dist <- alg_param[alg_param$id == id, variable]
+    raster::scalebar(d = dist,
+                     xy = c(xlim[2] - 125 - dist, ylim[1] + 125),
+                     label = "", lonlat = FALSE, lwd = 2)
+  }
 
   #### Plot (1): array
   array$array$xy_buf <- rgeos::gBuffer(sp::SpatialPoints(array$array$xy), width = true_detection_range, quadsegs = 1000)
@@ -267,6 +285,8 @@ lapply(array_ids, function(array_id){
   map_param$add_rasters$x <- white_out(estimates_for_array[[type]][[algorithm]])
   do.call(prettyGraphics::pretty_map, map_param)
   add_contour(map_param$add_rasters$x, ext = ext)
+  add_receivers_to_background(map_param$add_rasters$x, id = alg_true)
+  add_scale_bar(alg_true)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "c")
   do.call(plotrix::textbox, add_textbox)
@@ -280,6 +300,8 @@ lapply(array_ids, function(array_id){
   map_param$add_rasters$x <- white_out(rx)
   do.call(prettyGraphics::pretty_map, map_param)
   if(!is.null(rx)) add_contour(map_param$add_rasters$x, ext = ext)
+  add_receivers_to_background(map_param$add_rasters$x, variable_under)
+  add_scale_bar(variable_under)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "d")
   do.call(plotrix::textbox, add_textbox)
@@ -293,6 +315,8 @@ lapply(array_ids, function(array_id){
   map_param$add_rasters$x <- white_out(rx)
   do.call(prettyGraphics::pretty_map, map_param)
   if(!is.null(rx)) add_contour(map_param$add_rasters$x, ext = ext)
+  add_receivers_to_background(map_param$add_rasters$x, variable_over)
+  add_scale_bar(variable_over)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "e")
   do.call(plotrix::textbox, add_textbox)
@@ -302,25 +326,35 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (6): Supremum norm
-  sup_all <- lapply(sup_by_array, function(elm) elm[[type]][[algorithm]]) |> dplyr::bind_rows()
+  # Use same axis across both algorithms and variables
+  sup_all <- c(lapply(sup_by_array, function(elm) elm[[type]][["acpf"]]),
+               lapply(sup_by_array, function(elm) elm[[type]][["acdcpf"]])) |>
+    dplyr::bind_rows()
   sup <- sup_by_array[[array_id]][[type]][[algorithm]]
   if (variable == "mpr") {
     sup <- sup[sup$is_mpr, ]
+    true_param <- true_mobility
   } else if (variable == "dpr") {
     sup <- sup[sup$is_dpr, ]
+    true_param <- true_detection_range
   }
   sup <- sup[order(sup[, variable]), ]
   sup$labels <- ""
-  pos_labels <- seq(2, nrow(sup), 2)
-  sup[pos_labels, "label"] <- sup[pos_labels, variable]
+  pos_labels <- sup[, variable] >= 0.25 * true_param
+  sup[pos_labels, "labels"] <- sup[pos_labels, variable]
+  sup$cex <- 0.35
+  sup[pos_labels, "cex"] <- 0.7
   #pm <- par(mgp = c(3, -0.1, 0))
-  yaxis <- pretty_seq(c(0, max(sup_all$sup, na.rm = TRUE)), pretty_args = list(n = 3))
+  yaxis <- pretty_seq(c(0, max(sup_all$sup, na.rm = TRUE)), pretty_args = list(n = 4))
+  stopifnot(length(yaxis$at) > 2L)
   ylab <- rep("", length(yaxis$at))
   pos_labels <- seq(2, length(ylab), 2)
   ylab[pos_labels] <- yaxis$at[pos_labels]
   pretty_plot(sup[, variable], sup$sup,
-              pretty_axis_args = list(axis = list(list(at = sup[, variable],
-                                                       labels = sup$label,
+              pretty_axis_args = list(x = list(x = range(c(0, sup[, variable])),
+                                               y = range(yaxis$at)),
+                                      axis = list(list(at = sup[, variable],
+                                                       labels = sup$labels,
                                                        mgp = c(3, -0.3, 0)),
                                                   list(at = yaxis$at,
                                                        labels = ylab,
@@ -333,13 +367,12 @@ lapply(array_ids, function(array_id){
   points(sup[, variable], sup$sup, pch = 21,
          bg = scales::alpha("black", 0.75),
          col = NA,
-         cex = 0.7)
+         cex = sup$cex)
   # rug(sup[, variable], pos = 0)
   add_textbox_scatter <- add_textbox
-  add_textbox_scatter$x <- c(min(sup[, variable]) + 30, max(sup[, variable]) * atp)
-  add_textbox_scatter$y <- 0.1
-  if(algorithm == "acpf" & type == "kud")   add_textbox_scatter$y <- 0.15
-  if(algorithm == "acdcpf" & type == "kud") add_textbox_scatter$y <- 0.11
+  if(variable == "dpr") add_textbox_scatter$x <- c(min(sup[, variable]) + 30, max(sup[, variable]) * atp)
+  if(variable == "mpr") add_textbox_scatter$x <- c(min(sup[, variable]) + 95, max(sup[, variable]) * atp)
+  add_textbox_scatter$y <- 0.95
   add_textbox_scatter$fill <- NA
   add_textbox_scatter$border <- NA
   add_textbox_scatter$textlist <- paste0(array_label, "f")
