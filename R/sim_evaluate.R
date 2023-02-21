@@ -188,7 +188,7 @@ if(sbt == "sbt") {
 
 #### Set up image
 save_png <- TRUE
-if(save_png) png(paste0("./fig/path_", path_id, "_array_evaluation_", type, "_", sbt, ".png"),
+if(save_png) png(paste0("./fig/evaluation/path_", path_id, "_array_evaluation_", type, "_", sbt, ".png"),
                  height = height, width = width, units = "in", res = 600)
 pp <- par(mfrow = c(length(array_ids), width), oma = c(1, 1, 3, 1), mar = c(0, 0, 0, 0))
 xlim <- ext[1:2]; ylim <- ext[3:4]

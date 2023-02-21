@@ -139,7 +139,7 @@ if(run){
 
 ### Set up figure to save
 save_png <- TRUE
-if(save_png) png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration.png"),
+if(save_png) png(paste0("./fig/illustration/path_", path_id, "_array_", array_id,  "_illustration.png"),
                  height = 10, width = 12, units = "in", res = 600)
 
 
@@ -319,21 +319,21 @@ dev.off()
 
 #### Plot legends [combined with figures above manually using Preview on Mac]
 ## Bathymetry
-png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_1.png"),
+png(paste0("./illustration/fig/path_", path_id, "_array_", array_id,  "_illustration_legend_1.png"),
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
 fields::image.plot(grid, zlim = sort(bathy_zlim*-1), legend.only = TRUE, col = rev(bathy_cols))
 mtext(side = 4, "Depth (m)", cex = cex_main, line = 2.5)
 dev.off()
 ## Time
-png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_2.png"),
+png(paste0("./fig/illustration/path_", path_id, "_array_", array_id,  "_illustration_legend_2.png"),
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
 fields::image.plot(grid, zlim = c(0, 500), legend.only = TRUE, col = viridis::viridis(501))
 mtext(side = 4, "Time (steps)", cex = cex_main, line = 2.5)
 dev.off()
 ## Surfaces
-png(paste0("./fig/path_", path_id, "_array_", array_id,  "_illustration_legend_3.png"),
+png(paste0("./fig/illustration/path_", path_id, "_array_", array_id,  "_illustration_legend_3.png"),
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
 fields::image.plot(grid, zlim = c(0, 1), legend.only = TRUE, col = rev(grDevices::terrain.colors(255)))
