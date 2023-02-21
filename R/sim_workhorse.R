@@ -24,8 +24,8 @@
 # ... applied iteratively (over multiple paths/arrays/algorithm implementations)
 manual <- FALSE
 if(manual){
-  path_id  <- 1; array_id <- 12  # dataset controls
-  alg <- alg_param[["300_500"]] # algorithm parameters
+  path_id  <- 1; array_id <- 1  # dataset controls
+  alg <- alg_param[["300_50"]] # algorithm parameters
 }
 
 #### Get array/movement path and associated data
@@ -310,9 +310,11 @@ if(manual){
 #### ACPF
 out_acpf_success <- out_ac_success
 if(out_ac_success) {
-  ## Define record
-  out_ac_record <- pf_setup_record(paste0(con_root, "ac/record/"))
   ## Implement algorithm
+  cat(paste0(con_root, "ac/record/"))
+  print(list.files(paste0(con_root, "ac/record/")))
+  ## Define record
+  out_ac_record <- pf_setup_record(paste0(con_root, "ac/record/"), pattern = ".tif")
   out_acpf_file <- paste0(con_root, "acpf/out_acpf.rds")
   if(!file.exists(out_acpf_file)){
     out_acpf <- pf(record = out_ac_record,
@@ -438,7 +440,9 @@ kud_size  <- 100L
 if(out_acpf_success){
   out_acpf_pou_file <- paste0(con_root, "acpf/out_acpf_pou.tif")
   if(!file.exists(out_acpf_pou_file)){
-    out_acpf_pou   <- pf_plot_map(out_acpf_pairs_unq, grid, scale = scale_pou)
+    out_acpf_pou_raw  <- pf_plot_map(out_acpf_pairs_unq, grid, scale = "original")
+    out_acpf_pou      <- out_acpf_pou_raw/raster::cellStats(out_acpf_pou_raw, "max")
+    raster::writeRaster(out_acpf_pou_raw, paste0(con_root, "acpf/out_acpf_pou_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acpf_pou, out_acpf_pou_file, overwrite = TRUE)
   } else {
     out_acpf_pou <- raster::raster(out_acpf_pou_file)
@@ -447,7 +451,9 @@ if(out_acpf_success){
 if(out_acdcpf_success){
   out_acdcpf_pou_file <- paste0(con_root, "acdcpf/out_acdcpf_pou.tif")
   if(!file.exists(out_acdcpf_pou_file)){
-    out_acdcpf_pou   <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = scale_pou)
+    out_acdcpf_pou_raw  <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = "original")
+    out_acdcpf_pou      <- out_acdcpf_pou_raw/raster::cellStats(out_acdcpf_pou_raw, "max")
+    raster::writeRaster(out_acdcpf_pou_raw, paste0(con_root, "acdcpf/out_acdcpf_pou_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acdcpf_pou, out_acdcpf_pou_file, overwrite = TRUE)
   } else {
     out_acdcpf_pou <- raster::raster(out_acdcpf_pou_file)
@@ -458,10 +464,11 @@ if(out_acdcpf_success){
 if(out_acpf_success){
   out_acpf_kud_file <- paste0(con_root, "acpf/out_acpf_kud.tif")
   if(!file.exists(out_acpf_kud_file)){
-    out_acpf_kud   <- pf_kud(out_acpf_pou,
-                             sample_size = kud_size,
-                             grid = kud_grid)
-    out_acpf_kud   <- out_acpf_kud/raster::cellStats(out_acpf_kud, scale_kud)
+    out_acpf_kud_raw   <- pf_kud(out_acpf_pou_raw,
+                                 sample_size = kud_size,
+                                 grid = kud_grid)
+    out_acpf_kud   <- out_acpf_kud_raw/raster::cellStats(out_acpf_kud_raw, scale_kud)
+    raster::writeRaster(out_acpf_kud_raw, paste0(con_root, "acpf/out_acpf_kud_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acpf_kud, out_acpf_kud_file, overwrite = TRUE)
   } else {
     out_acpf_kud <- raster::raster(out_acpf_kud_file)
@@ -470,10 +477,11 @@ if(out_acpf_success){
 if(out_acdcpf_success){
   out_acdcpf_kud_file <- paste0(con_root, "acdcpf/out_acdcpf_kud.tif")
   if(!file.exists(out_acdcpf_kud_file)){
-    out_acdcpf_kud   <- pf_kud(out_acdcpf_pou,
-                               sample_size = kud_size,
-                               grid = kud_grid)
-    out_acdcpf_kud   <- out_acdcpf_kud/raster::cellStats(out_acdcpf_kud, scale_kud)
+    out_acdcpf_kud_raw   <- pf_kud(out_acdcpf_pou_raw,
+                                 sample_size = kud_size,
+                                 grid = kud_grid)
+    out_acdcpf_kud   <- out_acdcpf_kud_raw/raster::cellStats(out_acdcpf_kud_raw, scale_kud)
+    raster::writeRaster(out_acdcpf_kud_raw, paste0(con_root, "acdcpf/out_acdcpf_kud_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acdcpf_kud, out_acdcpf_kud_file, overwrite = TRUE)
   } else {
     out_acdcpf_kud <- raster::raster(out_acdcpf_kud_file)
