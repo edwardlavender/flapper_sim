@@ -62,6 +62,7 @@ plot_raster <-
 #### Add volume (home range) contour to a plot
 add_contour <-
   function(x, p = 0.5, ext = NULL, lwd = 0.5,...){
+    if(is.null(x)) return(NULL)
     if(!is.null(ext)) x <- raster::crop(x, ext)
     x <- spatialEco::raster.vol(terra::rast(x), p = p, sample = FALSE)
     x <- raster::raster(x)
