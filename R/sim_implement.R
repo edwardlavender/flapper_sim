@@ -18,7 +18,7 @@ try(dev.off(), silent = TRUE)
 #### Implementation
 
 cat("\014")
-cout <- "./data/estimates/log_sim_implement.txt"
+cout <- paste0("./data/estimates/log_sim_implement_", as.numeric(Sys.time()), ".txt")
 if (file.exists(cout)) unlink(cout)
 sink(cout)
 cat("log_sim_implement.txt")
@@ -30,7 +30,10 @@ lapply(1:length(dat_sim_paths), function(path_id){
   spaces()
   invisible(replicate(3, breaker()))
   cat(paste0("path ", path_id, ns))
-  lapply(1:length(dat_sim_arrays), function(array_id){
+  array_ids <- 1:length(dat_sim_arrays)
+  # array_ids <- 12L
+  lapply(array_ids, function(array_id){
+  # raster::plot(dat_sim_arrays[[array_id]]$array$xy)
     spaces()
     invisible(replicate(2, breaker()))
     cat(paste0("path ", path_id, ": array ", array_id, ns))
