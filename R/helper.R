@@ -28,19 +28,21 @@ if(!requireNamespace("rmarkdown", quietly = TRUE))
 
 #### Read raster (if exists)
 read_raster_if_exists <- function(file, read_all = TRUE){
-  if (file.exists(file)) {
+  if(file.exists(file)){
     raster::readAll(raster::raster(file))
   } else NULL
 }
 
+#### Maximum raster value
+cellStatsMx <- function(x){
+  if(!is.null(x)){
+    raster::cellStats(x, "max")
+  } else NULL
+}
+
 #### Scale raster (to a maximum value of one)
-scale_raster <- function(x) {
-  sm <- raster::cellStats(x, "sum")
-  print(paste0("sum = ", sm))
-  x <- x/sm
-  x <- x/raster::cellStats(x, "max")
-  # print(raster::cellStats(x, "max"))
-  return(x)
+scale_raster <- function(x, scale){
+  x/scale
 }
 
 #### White out rasters

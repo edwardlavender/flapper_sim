@@ -41,11 +41,6 @@ if(run){
   ######################################
   #### Get algorithm results
 
-  #### Scale outputs to a maximum value of one
-  # This means that all maps can be generated using one scale bar
-  # This has no discernible influence on the maps.
-  scale <- TRUE
-
   #### DC algorithm(s)
   ## DC algorithm (0.07 mins)
   out_dc <- dc(archival = archival,
@@ -54,7 +49,6 @@ if(run){
                calc_depth_error = function(...) matrix(c(-5, 5), nrow = 2),
                save_record_spatial = 1:30L)
   out_dc_s <- acdc_simplify(out_dc, type = "dc")
-  if(scale) out_dc_s$map <- scale_raster(out_dc_s$map)
   ## DCPF algorithm (0.02 mins)
   out_dc_record <- acdc_access_maps(out_dc_s)
   out_dcpf <- pf(out_dc_record,
@@ -74,19 +68,17 @@ if(run){
                               calc_distance = FALSE)
 
   #### AC* algorithms
-  # AC algorithm
+  ## AC algorithm
   out_ac   <- readRDS(paste0(con_root, "ac/out_ac.rds"))
   out_ac_s <- acdc_simplify(out_ac)
-  if(scale) out_ac_s$map <- scale_raster(out_ac_s$map)
   out_acpf_pairs <- readRDS(paste0(con_root, "acpf/out_acpf_pairs.rds"))
   out_acpf_pairs_unq <- pf_simplify(out_acpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acpf_pairs_pou <- pf_plot_map(out_acpf_pairs_unq, map = grid)
-  if(scale) out_acpf_pairs_pou <- scale_raster(out_acpf_pairs_pou)
-  out_acpf_pairs_ud  <- pf_kud(pf_plot_map(out_acpf_pairs_unq, map = grid),
+  out_acpf_pairs_ud  <- pf_kud(out_acpf_pairs_pou,
                                sample_size = 100,
                                estimate_ud = adehabitatHR::kernelUD,
                                grid = kud_grid)
-  if(scale) out_acpf_pairs_ud <- scale_raster(out_acpf_pairs_ud)
+  ## ACPF algorithm
   out_acpf_paths_file <- paste0(con_root, "acpf/out_acpf_paths.rds")
   if(!file.exists(out_acpf_paths_file)) {
     out_acpf_paths <- pf_simplify(out_acpf_pairs,
@@ -99,19 +91,19 @@ if(run){
   } else out_acpf_paths <- readRDS(out_acpf_paths_file)
   out_acpf_paths_ll  <- pf_loglik(out_acpf_paths)
   out_acpf_paths_sbt <-  out_acpf_paths[out_acpf_paths$path_id %in% out_acpf_paths_ll$path_id[1], ]
-  # ACDC algorithm(s)
+
+  #### ACDC algorithm(s)
+  ## ACDC algorithm
   out_acdc   <- readRDS(paste0(con_root, "acdc/out_acdc.rds"))
   out_acdc_s <- acdc_simplify(out_acdc)
-  if(scale) out_acdc_s$map <- scale_raster(out_acdc_s$map)
+  ## ACDCPF algorithm
   out_acdcpf_pairs     <- readRDS(paste0(con_root, "acdcpf/out_acdcpf_pairs.rds"))
   out_acdcpf_pairs_unq <- pf_simplify(out_acdcpf_pairs, summarise_pr = TRUE, return = "archive")
   out_acdcpf_pairs_pou <- pf_plot_map(out_acdcpf_pairs_unq, map = grid)
-  if(scale) out_acdcpf_pairs_pou <- scale_raster(out_acdcpf_pairs_pou)
-  out_acdcpf_pairs_ud  <- pf_kud(pf_plot_map(out_acdcpf_pairs_unq, map = grid),
+  out_acdcpf_pairs_ud  <- pf_kud(out_acdcpf_pairs_pou,
                                  sample_size = 100,
                                  estimate_ud = adehabitatHR::kernelUD,
                                  grid = kud_grid)
-  if(scale) out_acdcpf_pairs_ud <- scale_raster(out_acdcpf_pairs_ud)
   out_acdcpf_paths_file <- paste0(con_root, "acdcpf/out_acdcpf_paths.rds")
   if(!file.exists(out_acdcpf_paths_file)) {
     out_acdcpf_paths <- pf_simplify(out_acdcpf_pairs,
@@ -126,7 +118,21 @@ if(run){
   out_acdcpf_paths_ll  <- pf_loglik(out_acdcpf_paths)
   out_acdcpf_paths_sbt <-
     out_acdcpf_paths[out_acdcpf_paths$path_id %in% out_acdcpf_paths_ll$path_id[1], ]
+
 }
+
+#### Scale outputs to a maximum value of one
+# This means that all maps can be generated using one scale bar
+# This has no discernible influence on the maps.
+# Define scale control
+scale <- TRUE
+# Define maximum value across all mapped rasters
+mx    <- sapply(list(out_dc_s$map,
+                     out_ac_s$map, out_acpf_pairs_pou, out_acpf_pairs_ud,
+                     out_acdc_s$map, out_acdcpf_pairs_pou, out_acdcpf_pairs_ud),
+                cellStatsMx) |> max()
+# We use this value to scale maps below.
+# This is implemented such that 50 % contours aren't affected
 
 
 ######################################
@@ -141,7 +147,6 @@ if(run){
 save_png <- TRUE
 if(save_png) png(paste0("./fig/illustration/path_", path_id, "_array_", array_id,  "_illustration.png"),
                  height = 10, width = 12, units = "in", res = 600)
-
 
 ### Define graphical param
 mat <- matrix(c(1, 1, 3, 5, 9,
@@ -161,11 +166,16 @@ adj_2 <- 0.025
 spaces <- "    "
 
 #### Define colour schemes
+# Bathy
 bathy_zlim <- c(0, 225)
 bathy_col_param <- pretty_cols_brewer(bathy_zlim, scheme = "Blues", n_breaks = max(bathy_zlim))
 bathy_cols <- bathy_col_param$col
 add_bathy <- list(x = grid, plot_method = plot_raster_img, zlim = bathy_zlim, col = bathy_cols)
+# Paths
 add_paths <- list(x = NULL, col = viridis::viridis(nrow(path$xy_mat_on_grid)), lwd = 2, length = 0.05)
+# Probabilities
+zlim <- NULL
+if(scale) zlim <- c(0, 1)
 
 #### Plot the simulated array and path
 array$array$xy_buf <- rgeos::gBuffer(sp::SpatialPoints(array$array$xy), width = 300, quadsegs = 1000)
@@ -214,10 +224,11 @@ mtext(side = 2, "Depth (m)", cex = cex_main, line = 2.5)
 mtext(side = 3, "B", adj = adj_1 - 0.01, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(movement time series)"), adj = adj_2 - 0.01, cex = cex_main)
 
-
 #### Plot DC algorithm(s)
 ## DC
-pretty_map(add_rasters = list(x = white_out(out_dc_s$map), plot_method = plot_raster_img),
+rx <- white_out(out_dc_s$map)
+if(scale) rx <- scale_raster(rx, mx)
+pretty_map(add_rasters = list(x = rx, plot_method = plot_raster_img, zlim = zlim),
            pretty_axis_args = paa)
 add_contour(out_dc_s$map)
 mtext(side = 3, "C", adj = adj_1, font = 2, cex = cex_main)
@@ -238,8 +249,10 @@ mtext(side = 3, paste0(spaces, "(DCPF)"), adj = adj_2, cex = cex_main)
 
 #### Plot AC algorithm(s)
 ## AC
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_ac_s$map),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_ac_s$map)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -256,8 +269,10 @@ pf_plot_2d(out_acpf_paths_sbt,
 mtext(side = 3, "G", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [path])"), adj = adj_2, cex = cex_main)
 ## AC particles
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acpf_pairs_pou),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_acpf_pairs_pou)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -265,8 +280,10 @@ add_contour(out_acpf_pairs_pou)
 mtext(side = 3, "I", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACPF [POU])"), adj = adj_2, cex = cex_main)
 ## AC UD
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acpf_pairs_ud),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_acpf_pairs_ud)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -276,8 +293,10 @@ mtext(side = 3, paste0(spaces, "(ACPF [KUD])"), adj = adj_2, cex = cex_main)
 
 #### Plot ACDC algorithm(s)
 ## ACDC
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdc_s$map),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_acdc_s$map)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -294,8 +313,10 @@ pf_plot_2d(out_acdcpf_paths_sbt,
 mtext(side = 3, "H", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [path])"), adj = adj_2, cex = cex_main)
 ## ACDC particles
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdcpf_pairs_pou),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_acdcpf_pairs_pou)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -303,8 +324,10 @@ add_contour(out_acdcpf_pairs_pou)
 mtext(side = 3, "J", adj = adj_1, font = 2, cex = cex_main)
 mtext(side = 3, paste0(spaces, "(ACDCPF [POU])"), adj = adj_2, cex = cex_main)
 ## ACDC UD
-prettyGraphics::pretty_map(add_rasters = list(x = white_out(out_acdcpf_pairs_ud),
-                                              plot_method = plot_raster_img),
+rx <- white_out(out_acdcpf_pairs_ud)
+if(scale) rx <- scale_raster(rx, mx)
+prettyGraphics::pretty_map(add_rasters = list(x = rx,
+                                              plot_method = plot_raster_img, zlim = zlim),
                            xlim = xlim, ylim = ylim,
                            pretty_axis_args = paa,
                            crop_spatial = TRUE)
@@ -319,7 +342,7 @@ dev.off()
 
 #### Plot legends [combined with figures above manually using Preview on Mac]
 ## Bathymetry
-png(paste0("./illustration/fig/path_", path_id, "_array_", array_id,  "_illustration_legend_1.png"),
+png(paste0("./fig/illustration/path_", path_id, "_array_", array_id,  "_illustration_legend_1.png"),
     height = 5, width = 3, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 4))
 fields::image.plot(grid, zlim = sort(bathy_zlim*-1), legend.only = TRUE, col = rev(bathy_cols))
