@@ -522,9 +522,9 @@ lines(dist, calc_mprw(dist, 1000, verbose = TRUE), type = "l")
 do2d <- FALSE
 if(do2d){
   s <- c(seq(0.05, 0.25, by = 0.05), seq(0.25, 2.5, by = 0.25))
-  try_detection_ranges <- c(true_detection_range, true_detection_range * s) #, 2000, 4000
+  try_detection_ranges <- c(true_detection_range, true_detection_range * s)
   try_detection_ranges <- try_detection_ranges[!duplicated(try_detection_ranges)]
-  try_mobilities       <- c(true_mobility, true_mobility * s) # 2000, 4000
+  try_mobilities       <- c(true_mobility, true_mobility * s)
   try_mobilities       <- try_mobilities[!duplicated(try_mobilities)]
   combs <-
     rbind(
