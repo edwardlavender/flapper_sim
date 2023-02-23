@@ -519,7 +519,7 @@ lines(dist, calc_mprw(dist, 1000, verbose = TRUE), type = "l")
 # We only need to specify the ranges of these parameters
 # ... and other parameters in the model are changed proportionally
 # ... via the calc_dprw() and calc_mprw() 'wrapper' functions
-do2d <- FALSE
+do2d <- TRUE
 if(do2d){
   s <- c(seq(0.05, 0.25, by = 0.05), seq(0.25, 2.5, by = 0.25))
   try_detection_ranges <- c(true_detection_range, true_detection_range * s)
