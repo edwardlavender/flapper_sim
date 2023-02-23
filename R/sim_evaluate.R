@@ -25,8 +25,13 @@ path_id   <- 1
 path      <- dat_sim_paths[[1]]
 delta_t   <- "2 hours"
 kud_grid  <- kud_habitat(grid)
-scale_pou <- "max" # scale all maps between 0 and 1 for comparability (as in sim_workhorse.R)
-scale_kud <- "max"
+# Define map scaling parameters: 'original' or 'max'
+# (Deprecated) Use scale_* = "original" here to load 'raw' maps
+# Scaling is implemented below in the plotting section instead
+scale_pou <- "original"
+scale_kud <- "original"
+stopifnot(scale_pou == "original")
+stopifnot(scale_kud == "original")
 
 #### Check the number of acoustic detections for each array
 sapply(dat_sim_detections_by_path[[path_id]], function(acc) nrow(acc))
@@ -88,7 +93,7 @@ if(!file.exists(estimates_by_array_best_file)){
       path_kud <- raster::raster(path_kud[[1]])
       path_kud <- raster::resample(path_kud, grid)
       path_kud <- path_kud/raster::cellStats(path_kud, "sum")
-      path_kud <- path_kud/raster::cellStats(path_kud, scale_kud)
+      if(scale_kud != "original") path_kud <- path_kud/raster::cellStats(path_kud, scale_kud)
       pretty_map(add_rasters = list(x = path_kud, interpolation = TRUE))
     }
 
@@ -129,7 +134,7 @@ if(!file.exists(estimates_by_array_best_file)){
       coa_kud <- raster::raster(coa_kud[[1]])
       coa_kud <- raster::resample(coa_kud, grid)
       coa_kud <- coa_kud/raster::cellStats(coa_kud, "sum")
-      coa_kud <- coa_kud/raster::cellStats(coa_kud, scale_kud)
+      if (scale_kud != "original") coa_kud <- coa_kud/raster::cellStats(coa_kud, scale_kud)
       if(all(is.na(raster::getValues(coa_kud)))){
         coa_kud <- NULL
       } else {
@@ -138,10 +143,20 @@ if(!file.exists(estimates_by_array_best_file)){
     }
 
     #### ACPF and ACDCPF maps
-    acpf_pou   <- raster::raster(paste0(con_root, "acpf/out_acpf_pou.tif"))
-    acpf_kud   <- raster::raster(paste0(con_root, "acpf/out_acpf_kud.tif"))
-    acdcpf_pou <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_pou.tif"))
-    acdcpf_kud <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_kud.tif"))
+    if(scale_pou == "original"){
+      acpf_pou   <- raster::raster(paste0(con_root, "acpf/out_acpf_pou_raw.tif"))
+      acdcpf_pou <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_pou_raw.tif"))
+    } else if (scale_pou == "max"){
+      acpf_pou   <- raster::raster(paste0(con_root, "acpf/out_acpf_pou.tif"))
+      acdcpf_pou   <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_pou.tif"))
+    }
+    if(scale_kud == "original"){
+      acpf_kud   <- raster::raster(paste0(con_root, "acpf/out_acpf_kud_raw.tif"))
+      acdcpf_kud <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_kud_raw.tif"))
+    } else if(scale_kud == "max"){
+      acpf_kud   <- raster::raster(paste0(con_root, "acpf/out_acpf_kud.tif"))
+      acdcpf_kud <- raster::raster(paste0(con_root, "acdcpf/out_acdcpf_kud.tif"))
+    }
 
     #### Return list
     list(path = path, coa_xy = out_coa,
@@ -160,7 +175,7 @@ if(!file.exists(estimates_by_array_best_file)){
 
 #### Choose whether or not to plot POUs or KUDs
 type <- c("kud", "pou")
-type <- type[1]
+type <- type[2]
 
 #### Choose whether or not to focus on a small selection of arrays
 dat_sim_array_info_2 <- dat_sim_array_info
@@ -217,7 +232,7 @@ if(type == "pou") add_paths$lwd <- 0.1
 lapply(array_ids, function(array_id){
 
   #### Get array/path details
-  # array_id <- 10
+  # array_id <- 7
   print(array_id)
   array                  <- dat_sim_arrays[[array_id]]
   array_info             <- dat_sim_array_info_2[dat_sim_array_info_2$index == array_id, ]
@@ -257,16 +272,36 @@ lapply(array_ids, function(array_id){
   }
 
   #### Define algorithm plotting param
+  # Get the maximum value across all rasters (for the current array) for scaling
+  scale <- TRUE
+  if(scale){
+    maps <-
+      list(white_out(estimates_for_array[[type]]$sim),
+           white_out(estimates_for_array[[type]]$coa),
+           white_out(estimates_for_array[[type]]$acpf),
+           white_out(estimates_for_array[[type]]$acdcpf)) |>
+      plyr::compact()
+    mx <-
+      sapply(maps, function(r){
+        if(!is.null(r)) raster::cellStats(r, "max")
+      }) |>
+      max(na.rm = TRUE)
+    zlim <- c(0, 1)
+  } else {
+    zlim <- NULL
+  }
   map_param <- map_param_raw <- list(x = grid,
                                      add_rasters = list(x = NULL,
                                                         plot_method = raster::image,
-                                                        zlim = c(0, 1)),
+                                                        zlim = zlim),
                                      xlim = xlim, ylim = ylim,
                                      pretty_axis_args = paa,
                                      crop_spatial = TRUE)
 
   #### Plot (2): path (between detections)
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$sim)
+  rx <- white_out(estimates_for_array[[type]]$sim)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   add_paths$x             <- path_for_array$xy_mat_on_grid_within_acoustics
   map_param$add_paths     <- add_paths
   do.call(prettyGraphics::pretty_map, map_param)
@@ -280,11 +315,14 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (3): COA
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$coa)
+  rr <- estimates_for_array[[type]]$coa
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   if(is.null(map_param$add_rasters$x)) map_param$add_rasters <- NULL
   map_param$add_points    <- list(x = estimates_for_array$coa_xy$x, estimates_for_array$coa_xy$y, pch = 17, bg = "black")
   do.call(prettyGraphics::pretty_map, map_param)
-  if(type == "kud" && !is.null(map_param$add_rasters$x)) add_contour(map_param$add_rasters$x, ext = ext)
+  if(type == "kud" && !is.null(rr)) add_contour(rr, ext = ext)
   map_param$add_rasters$x <- NULL
   map_param$add_points    <- NULL
   if(is.null(map_param$add_rasters)) map_param$add_rasters <- map_param_raw$add_rasters
@@ -297,9 +335,12 @@ lapply(array_ids, function(array_id){
 
   #### Plot (4): ACPF
   map_param$add_rasters$plot_method <- plot_raster_img
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$acpf)
+  rr <- estimates_for_array[[type]]$acpf
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
-  add_contour(map_param$add_rasters$x, ext = ext)
+  add_contour(rr, ext = ext)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "d")
   do.call(plotrix::textbox, add_textbox)
@@ -309,9 +350,12 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (5): ACDCPF
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$acdcpf)
+  rr <- estimates_for_array[[type]]$acdcpf
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
-  add_contour(map_param$add_rasters$x, ext = ext)
+  add_contour(rr, ext = ext)
   map_param$add_rasters$x <- NULL
   add_textbox$textlist    <- paste0(array_label, "e")
   do.call(plotrix::textbox, add_textbox)
