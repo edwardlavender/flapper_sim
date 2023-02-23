@@ -567,7 +567,7 @@ if(do2d){
     dplyr::slice(-1L) |>
     dplyr::mutate(ID = paste0("S3 (", index - 1, ")"),
                   dpr_beta = adjust_beta(true_beta_detection, true_detection_range, detection_range) |>
-                    round(2) |> add_lagging_point_zero(n = 2),
+                    round(3) |> add_lagging_point_zero(n = 3),
                   dpr_gamma = detection_range,
                   mpr_beta = adjust_beta(true_beta_mobility, true_mobility, mobility)
                   |> round(3) |> add_lagging_point_zero(n = 3),
