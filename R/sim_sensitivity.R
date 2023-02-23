@@ -43,7 +43,7 @@ if(run_setup){
     estimates_by_array_and_imp <- lapply(1:length(dat_sim_arrays), function(array_id){
 
       #### Define root
-      # array_id <- 1L
+      # array_id <- 12L
       print(array_id)
       con_root <- paste0("./data/estimates/path_", path_id, "/array_", array_id, "/")
 
@@ -54,10 +54,10 @@ if(run_setup){
           # alg <- alg_param[[1]]
           con_root_alg <- paste0(con_root, "alg_imp_", alg$id, "/")
           # Read maps
-          acpf_pou   <- read_raster_if_exists(paste0(con_root_alg, "acpf/out_acpf_pou.tif"))
-          acpf_kud   <- read_raster_if_exists(paste0(con_root_alg, "acpf/out_acpf_kud.tif"))
-          acdcpf_pou <- read_raster_if_exists(paste0(con_root_alg, "acdcpf/out_acdcpf_pou.tif"))
-          acdcpf_kud <- read_raster_if_exists(paste0(con_root_alg, "acdcpf/out_acdcpf_kud.tif"))
+          acpf_pou   <- read_raster_if_exists(paste0(con_root_alg, "acpf/out_acpf_pou_raw.tif"))
+          acpf_kud   <- read_raster_if_exists(paste0(con_root_alg, "acpf/out_acpf_kud_raw.tif"))
+          acdcpf_pou <- read_raster_if_exists(paste0(con_root_alg, "acdcpf/out_acdcpf_pou_raw.tif"))
+          acdcpf_kud <- read_raster_if_exists(paste0(con_root_alg, "acdcpf/out_acdcpf_kud_raw.tif"))
           list(
             pou = list(acpf = acpf_pou, acdcpf = acdcpf_pou),
             kud = list(acpf = acpf_kud, acdcpf = acdcpf_kud)
@@ -88,7 +88,8 @@ if(run_setup){
   # algorithm <- "acpf"
   alg_param <- do.call(rbind, alg_param)
   sup_by_array <-
-    pbapply::pblapply(estimates_by_array_and_imp, function(elm) {
+    pbapply::pblapply(1:length(estimates_by_array_and_imp), function(i) {
+      elm <- estimates_by_array_and_imp[[i]] # elm <- kud_by_alg
       best_maps <- elm[[alg_true]]
       by_type <-
         lapply(c("pou", "kud"), function(type){
@@ -100,9 +101,11 @@ if(run_setup){
                 if (is.null(misp)) return(NA)
                 raster::cellStats(abs(best - misp), "max")
               }, USE.NAMES = TRUE)
-              d <- data.frame(id = names(sup),
+              d <- data.frame(array = i,
+                              algorithm = algorithm,
+                              id = names(sup),
                               sup = as.numeric(sup))
-              ind <- match(d$id, alg_param$id)
+              ind      <- match(d$id, alg_param$id)
               d$dpr    <- alg_param$detection_range[ind]
               d$mpr    <- alg_param$mobility[ind]
               d$is_mpr <- alg_param$is_mpr[ind]
@@ -131,7 +134,7 @@ type <- type[1]
 # ... set below
 # Algorithm
 algorithm <- c("acpf", "acdcpf")
-algorithm <- algorithm[1]
+algorithm <- algorithm[2]
 # Variable
 variable  <- c("dpr", "mpr")
 variable  <- variable[2]
@@ -219,12 +222,10 @@ lapply(array_ids, function(array_id){
 
   #### Define helper functions
   add_receivers_to_background <- function(r, id){
-    #if (!is.null(r)){
       do.call(graphics::points,
               list(x = sp::coordinates(array$array$xy),
                    pch = 21, cex = 0.3,
                    col = scales::alpha("dimgrey", 0.95), bg = scales::alpha("dimgrey", 0.95)))
-    #}
   }
   add_scale_bar <- function(id){
     dist <- alg_param[alg_param$id == id, variable]
@@ -258,16 +259,38 @@ lapply(array_ids, function(array_id){
   }
 
   #### Define algorithm plotting param
+  # Get the maximum value across all rasters (for the current array) for scaling
+  scale <- TRUE
+  if(scale){
+    maps <-
+      list(estimates_for_array[[type]]$sim,
+           estimates_for_array[[type]][[algorithm]],
+           estimates_by_array_and_imp[[array_id]][[variable_under]][[type]][[algorithm]],
+           estimates_by_array_and_imp[[array_id]][[variable_over]][[type]][[algorithm]]
+      ) |>
+      plyr::compact()
+    mx <-
+      sapply(maps, function(r){
+        if(!is.null(r)) raster::cellStats(r, "max")
+      }) |>
+      max(na.rm = TRUE)
+    zlim <- c(0, 1)
+  } else {
+    zlim <- NULL
+  }
   map_param <- map_param_raw <- list(x = grid,
                                      add_rasters = list(x = NULL,
                                                         plot_method = raster::image,
-                                                        zlim = c(0, 1)),
+                                                        zlim = zlim),
                                      xlim = xlim, ylim = ylim,
                                      pretty_axis_args = paa,
                                      crop_spatial = TRUE)
 
   #### Plot (2): path (between detections)
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]]$sim)
+  rr <- estimates_for_array[[type]]$sim
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   add_paths$x             <- path_for_array$xy_mat_on_grid_within_acoustics
   map_param$add_paths     <- add_paths
   do.call(prettyGraphics::pretty_map, map_param)
@@ -282,9 +305,12 @@ lapply(array_ids, function(array_id){
 
   #### Plot (3): Algorithm (best)
   map_param$add_rasters$plot_method <- plot_raster_img
-  map_param$add_rasters$x <- white_out(estimates_for_array[[type]][[algorithm]])
+  rr <- estimates_for_array[[type]][[algorithm]]
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
-  add_contour(map_param$add_rasters$x, ext = ext)
+  add_contour(rr, ext = ext)
   add_receivers_to_background(map_param$add_rasters$x, id = alg_true)
   add_scale_bar(alg_true)
   map_param$add_rasters$x <- NULL
@@ -296,10 +322,13 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (4): Algorithm (underestimate)
-  rx <- estimates_by_array_and_imp[[array_id]][[variable_under]][[type]][[algorithm]]
-  map_param$add_rasters$x <- white_out(rx)
+  map_param$add_rasters$plot_method <- plot_raster_img
+  rr <- estimates_by_array_and_imp[[array_id]][[variable_under]][[type]][[algorithm]]
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
-  if(!is.null(rx)) add_contour(map_param$add_rasters$x, ext = ext)
+  add_contour(rr, ext = ext)
   add_receivers_to_background(map_param$add_rasters$x, variable_under)
   add_scale_bar(variable_under)
   map_param$add_rasters$x <- NULL
@@ -311,10 +340,13 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (5): Algorithm (overestimate)
-  rx <- estimates_by_array_and_imp[[array_id]][[variable_over]][[type]][[algorithm]]
-  map_param$add_rasters$x <- white_out(rx)
+  map_param$add_rasters$plot_method <- plot_raster_img
+  rr <- estimates_by_array_and_imp[[array_id]][[variable_over]][[type]][[algorithm]]
+  rx <- white_out(rr)
+  if(scale) rx <- scale_raster(rx, mx)
+  map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
-  if(!is.null(rx)) add_contour(map_param$add_rasters$x, ext = ext)
+  add_contour(rr, ext = ext)
   add_receivers_to_background(map_param$add_rasters$x, variable_over)
   add_scale_bar(variable_over)
   map_param$add_rasters$x <- NULL
@@ -326,10 +358,7 @@ lapply(array_ids, function(array_id){
   }
 
   #### Plot (6): Supremum norm
-  # Use same axis across both algorithms and variables
-  sup_all <- c(lapply(sup_by_array, function(elm) elm[[type]][["acpf"]]),
-               lapply(sup_by_array, function(elm) elm[[type]][["acdcpf"]])) |>
-    dplyr::bind_rows()
+  # Pull out values
   sup <- sup_by_array[[array_id]][[type]][[algorithm]]
   if (variable == "mpr") {
     sup <- sup[sup$is_mpr, ]
@@ -339,17 +368,24 @@ lapply(array_ids, function(array_id){
     true_param <- true_detection_range
   }
   sup <- sup[order(sup[, variable]), ]
+  # Generate tidier tables (*100)
+  sup$sup  <- sup$sup * 1e2
   sup$labels <- ""
   pos_labels <- sup[, variable] >= 0.25 * true_param
   sup[pos_labels, "labels"] <- sup[pos_labels, variable]
   sup$cex <- 0.35
   sup[pos_labels, "cex"] <- 0.7
-  #pm <- par(mgp = c(3, -0.1, 0))
-  yaxis <- pretty_seq(c(0, max(sup_all$sup, na.rm = TRUE)), pretty_args = list(n = 4))
+  eps <- 1e-5
+  yaxis <- pretty_seq(c(0, max(sup$sup, na.rm = TRUE) + eps), pretty_args = list(n = 5))
+  if(length(yaxis$at) <= 4L){
+    yaxis <- pretty_seq(c(0, max(sup$sup, na.rm = TRUE) + eps), pretty_args = list(n = 6))
+  }
   stopifnot(length(yaxis$at) > 2L)
-  ylab <- rep("", length(yaxis$at))
-  pos_labels <- seq(2, length(ylab), 2)
-  ylab[pos_labels] <- yaxis$at[pos_labels]
+  ylab <- prettyGraphics:::pretty_labels(yaxis$at, yaxis$at)
+  pos_labels <- seq(1, length(ylab), 2)
+  ylab[pos_labels] <- ""
+  ylab[length(ylab)] <- ""
+  if(length(which(ylab != "")) < 2L) warning(paste("For array", array_id, "there are Less than two y axis labels!"))
   pretty_plot(sup[, variable], sup$sup,
               pretty_axis_args = list(x = list(x = range(c(0, sup[, variable])),
                                                y = range(yaxis$at)),
@@ -358,25 +394,20 @@ lapply(array_ids, function(array_id){
                                                        mgp = c(3, -0.3, 0)),
                                                   list(at = yaxis$at,
                                                        labels = ylab,
-                                                       mgp = c(3, -0.8, 0))),
+                                                       mgp = c(3, -0.5 - 0.3 * max(ndp(yaxis$at)) , 0))),
                                       control_axis = list(tck = 0.02, las = TRUE, cex.axis = 0.5)),
               type = "n",
               xlab = "", ylab = "")
-  #par(pm)
   lines(sup[, variable], sup$sup, col = scales::alpha("grey", 0.7))
   points(sup[, variable], sup$sup, pch = 21,
          bg = scales::alpha("black", 0.75),
          col = NA,
          cex = sup$cex)
-  # rug(sup[, variable], pos = 0)
   add_textbox_scatter <- add_textbox
-  if(variable == "dpr") add_textbox_scatter$x <- c(min(sup[, variable]) + 30, max(sup[, variable]) * atp)
-  if(variable == "mpr") add_textbox_scatter$x <- c(min(sup[, variable]) + 95, max(sup[, variable]) * atp)
-  add_textbox_scatter$y <- 0.95
-  add_textbox_scatter$fill <- NA
-  add_textbox_scatter$border <- NA
-  add_textbox_scatter$textlist <- paste0(array_label, "f")
-  do.call(plotrix::textbox, add_textbox_scatter)
+  legend_x <- "bottomright"
+  if(algorithm == "acpf" & variable == "mpr") legend_x <- "topright"
+  legend(legend_x, legend = paste0(array_label, "f"),
+         bty = "n", text.font = 2, cex = add_textbox$cex, adj = c(0, 0.625)) # larger adj[2], lower label
   if(array_id == array_ids[1]){
     add_title_1$text <- "Sup"
     do.call(mtext, add_title_1)

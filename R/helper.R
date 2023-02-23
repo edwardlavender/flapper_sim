@@ -70,6 +70,13 @@ add_contour <-
     return(invisible())
   }
 
+#### Count the number of decimal places (ndp)
+ndp <- function(x){
+  xc <- format(x, scientific = FALSE, trim = TRUE)
+  dp <- stringr::str_split_fixed(xc, "[.]", 2)[, 2]
+  nchar(dp)
+}
+
 
 #### End of code.
 ######################################
