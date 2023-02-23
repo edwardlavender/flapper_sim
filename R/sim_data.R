@@ -519,23 +519,39 @@ lines(dist, calc_mprw(dist, 1000, verbose = TRUE), type = "l")
 # We only need to specify the ranges of these parameters
 # ... and other parameters in the model are changed proportionally
 # ... via the calc_dprw() and calc_mprw() 'wrapper' functions
-s <- c(seq(0.05, 0.25, by = 0.05), seq(0.25, 2.5, by = 0.25))
-try_detection_ranges <- c(true_detection_range, true_detection_range * s)
-try_detection_ranges <- try_detection_ranges[!duplicated(try_detection_ranges)]
-try_mobilities       <- c(true_mobility, true_mobility * s)
-try_mobilities       <- try_mobilities[!duplicated(try_mobilities)]
+do2d <- FALSE
+if(do2d){
+  s <- c(seq(0.05, 0.25, by = 0.05), seq(0.25, 2.5, by = 0.25))
+  try_detection_ranges <- c(true_detection_range, true_detection_range * s) #, 2000, 4000
+  try_detection_ranges <- try_detection_ranges[!duplicated(try_detection_ranges)]
+  try_mobilities       <- c(true_mobility, true_mobility * s) # 2000, 4000
+  try_mobilities       <- try_mobilities[!duplicated(try_mobilities)]
+  combs <-
+    rbind(
+      data.frame(detection_range = try_detection_ranges,
+                 mobility = true_mobility,
+                 is_mpr = FALSE,
+                 is_dpr = TRUE),
+      data.frame(detection_range = true_detection_range,
+                 mobility = try_mobilities,
+                 is_mpr = TRUE,
+                 is_dpr = FALSE)
+    )
+} else {
+  s <- seq(0.25, 2, by = 0.25)
+  try_detection_ranges <- c(true_detection_range * s)
+  try_detection_ranges <- try_detection_ranges[!duplicated(try_detection_ranges)]
+  try_mobilities       <- c(true_mobility, true_mobility * s)
+  try_mobilities       <- try_mobilities[!duplicated(try_mobilities)]
+  combs <- expand.grid(detection_range = try_detection_ranges,
+                       mobility = try_mobilities,
+                       is_mpr = NA,
+                       is_dpr = NA)
+  nrow(combs)
+}
 # Check selected combinations of parameters
 alg_param <-
-  rbind(
-    data.frame(detection_range = try_detection_ranges,
-               mobility = true_mobility,
-               is_mpr = FALSE,
-               is_dpr = TRUE),
-    data.frame(detection_range = true_detection_range,
-               mobility = try_mobilities,
-               is_mpr = TRUE,
-               is_dpr = FALSE)
-  ) |>
+  combs |>
   dplyr::mutate(id = paste0(detection_range, "_", mobility),
                 mobility_on_grid = mobility + raster::res(grid)[1],
                 correct = detection_range == true_detection_range & mobility == true_mobility,
@@ -544,69 +560,72 @@ alg_param <-
   dplyr::filter(!duplicated(id)) |>
   dplyr::mutate(index = dplyr::row_number()) |>
   dplyr::select(index, id, is_mpr, is_dpr, correct, detection_range, mobility, mobility_on_grid)
+
 # Write tidy table
-alg_param |>
-  dplyr::slice(-1L) |>
-  dplyr::mutate(ID = paste0("S3 (", index - 1, ")"),
-                dpr_beta = adjust_beta(true_beta_detection, true_detection_range, detection_range) |>
-                  round(2) |> add_lagging_point_zero(n = 2),
-                dpr_gamma = detection_range,
-                mpr_beta = adjust_beta(true_beta_mobility, true_mobility, mobility)
-                |> round(3) |> add_lagging_point_zero(n = 3),
-                mpr_delta = mobility
-  ) |>
-  dplyr::select(ID,
-                dpr_beta, dpr_gamma,
-                mpr_beta, mpr_delta
-  ) |>
-  write.table("./fig/dat_sim_param.txt",
-              quote = FALSE, row.names = FALSE, na = "", sep = ",")
-# Visualise algorithm parameters
-png("./fig/algorithm_parameters.png",
-    height = 6, width = 11, units = "in", res = 600 )
-pp <- par(mfrow = c(1, 2), oma = c(2, 2, 2, 2))
-a=pretty_plot(range(alg_param$detection_range), c(0, 1),
-            type = "n", xlab = "", ylab = "")
-lapply(try_detection_ranges, function(rng) {
-  x <- seq(0, rng, length.out = 100)
-  lines(x, calc_dprw(x, rng, verbose = TRUE))
-  points(rng, 0, pch = 21, bg = "black", cex = 0.75)
-})
-mtext(side = 1, "Distance (m) from receiver location", line = 2)
-mtext(side = 2, "Detection probability", line = 2.5)
-mtext(side = 3, "A", adj = 0, font = 2, cex = 1.5)
-x <- seq(0, true_detection_range, length.out = 100)
-lines(x, calc_dprw(x, true_detection_range), lwd = 3)
-legend("topright",
-       legend = c("'correct' model", expression(gamma)),
-       lwd = c(3, NA),
-       pch = c(NA, 21),
-       pt.bg = c(NA, "black"),
-       pt.cex = 0.75,
-       y.intersp = 1.25,
-       bty = "n")
-pretty_plot(range(alg_param$mobility), c(0, 1),
-            type = "n", xlab = "", ylab = "")
-lapply(try_mobilities, function(rng) {
-  x <- seq(0, rng, length.out = 100)
-  lines(x, calc_mprw(x, rng, verbose = TRUE))
-  points(rng, 0, pch = 21, bg = "black", cex = 0.75)
-})
-x <- seq(0, true_mobility, length.out = 100)
-lines(x, calc_mprw(x, true_mobility), lwd = 3)
-legend("topright",
-       legend = c("'correct' model", expression(Delta(T[1], T[2]))),
-       lwd = c(3, NA),
-       pch = c(NA, 21),
-       pt.bg = c(NA, "black"),
-       pt.cex = 0.75,
-       y.intersp = 1.25,
-       bty = "n")
-mtext(side = 1, "Distance (m) from previous location", line = 2)
-mtext(side = 2, "Movement probability", line = 2.5)
-mtext(side = 3, "B", adj = 0, font = 2, cex = 1.5)
-par(pp)
-dev.off()
+if(do2d){
+  alg_param |>
+    dplyr::slice(-1L) |>
+    dplyr::mutate(ID = paste0("S3 (", index - 1, ")"),
+                  dpr_beta = adjust_beta(true_beta_detection, true_detection_range, detection_range) |>
+                    round(2) |> add_lagging_point_zero(n = 2),
+                  dpr_gamma = detection_range,
+                  mpr_beta = adjust_beta(true_beta_mobility, true_mobility, mobility)
+                  |> round(3) |> add_lagging_point_zero(n = 3),
+                  mpr_delta = mobility
+    ) |>
+    dplyr::select(ID,
+                  dpr_beta, dpr_gamma,
+                  mpr_beta, mpr_delta
+    ) |>
+    write.table("./fig/dat_sim_param.txt",
+                quote = FALSE, row.names = FALSE, na = "", sep = ",")
+  # Visualise algorithm parameters
+  png("./fig/algorithm_parameters.png",
+      height = 6, width = 11, units = "in", res = 600 )
+  pp <- par(mfrow = c(1, 2), oma = c(2, 2, 2, 2))
+  pretty_plot(range(alg_param$detection_range), c(0, 1),
+              type = "n", xlab = "", ylab = "")
+  lapply(try_detection_ranges, function(rng) {
+    x <- seq(0, rng, length.out = 100)
+    lines(x, calc_dprw(x, rng, verbose = TRUE))
+    points(rng, 0, pch = 21, bg = "black", cex = 0.75)
+  })
+  mtext(side = 1, "Distance (m) from receiver location", line = 2)
+  mtext(side = 2, "Detection probability", line = 2.5)
+  mtext(side = 3, "A", adj = 0, font = 2, cex = 1.5)
+  x <- seq(0, true_detection_range, length.out = 100)
+  lines(x, calc_dprw(x, true_detection_range), lwd = 3)
+  legend("topright",
+         legend = c("'correct' model", expression(gamma)),
+         lwd = c(3, NA),
+         pch = c(NA, 21),
+         pt.bg = c(NA, "black"),
+         pt.cex = 0.75,
+         y.intersp = 1.25,
+         bty = "n")
+  pretty_plot(range(alg_param$mobility), c(0, 1),
+              type = "n", xlab = "", ylab = "")
+  lapply(try_mobilities, function(rng) {
+    x <- seq(0, rng, length.out = 100)
+    lines(x, calc_mprw(x, rng, verbose = TRUE))
+    points(rng, 0, pch = 21, bg = "black", cex = 0.75)
+  })
+  x <- seq(0, true_mobility, length.out = 100)
+  lines(x, calc_mprw(x, true_mobility), lwd = 3)
+  legend("topright",
+         legend = c("'correct' model", expression(Delta(T[1], T[2]))),
+         lwd = c(3, NA),
+         pch = c(NA, 21),
+         pt.bg = c(NA, "black"),
+         pt.cex = 0.75,
+         y.intersp = 1.25,
+         bty = "n")
+  mtext(side = 1, "Distance (m) from previous location", line = 2)
+  mtext(side = 2, "Movement probability", line = 2.5)
+  mtext(side = 3, "B", adj = 0, font = 2, cex = 1.5)
+  par(pp)
+  dev.off()
+}
 
 # Define list
 alg_param <- split(alg_param, alg_param$index)
