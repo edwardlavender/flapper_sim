@@ -24,8 +24,8 @@
 # ... applied iteratively (over multiple paths/arrays/algorithm implementations)
 manual <- FALSE
 if(manual){
-  path_id  <- 1; array_id <- 1  # dataset controls
-  alg <- alg_param[["300_50"]] # algorithm parameters
+  path_id  <- 4; array_id <- 1  # dataset controls
+  alg <- alg_param[["300_500"]] # algorithm parameters
 }
 
 #### Get array/movement path and associated data
