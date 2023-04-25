@@ -27,13 +27,30 @@ spaces <- function() cat(ns)
 breaker  <- function() cat(paste0(paste0(rep("-", 150), collapse = ""), "\n"))
 t1 <- Sys.time()
 lapply(1:length(dat_sim_paths), function(path_id){
+
+  # Set up
   spaces()
   invisible(replicate(3, breaker()))
   cat(paste0("path ", path_id, ns))
+
+  # (optional) Define paths to skip
+  # if (!(path_id %in% 71:80)) return(NULL)
+
+  # Loop over arrays
   array_ids <- 1:length(dat_sim_arrays)
   # array_ids <- 12L
   lapply(array_ids, function(array_id){
-  # raster::plot(dat_sim_arrays[[array_id]]$array$xy)
+
+    # (optional) check array
+    # raster::plot(dat_sim_arrays[[array_id]]$array$xy)
+
+    # Skip simulations that failed to produce observations
+    if(nrow(fails[fails$path == path_id & fails$array == array_id, ]) > 0L) {
+      cat(paste("SKIP: path", path_id, "array", array_id, "!"))
+      return(NULL)
+    }
+
+    # Implement simulations
     spaces()
     invisible(replicate(2, breaker()))
     cat(paste0("path ", path_id, ": array ", array_id, ns))
@@ -46,6 +63,7 @@ lapply(1:length(dat_sim_paths), function(path_id){
       spaces()
       tictoc::toc()
     })
+
   })
 })
 sink()
