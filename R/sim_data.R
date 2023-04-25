@@ -195,7 +195,9 @@ write.table(dat_sim_array_info_tidy, "./fig/dat_sim_array_info_tidy.txt", na = "
 #### Simulate movement
 
 #### Define a list of model parameters
-dat_sim_mvt_info <- list("1" = list())
+# dat_sim_mvt_info <- list("1", list())
+dat_sim_mvt_info <- lapply(seq_len(100), function(i) list())
+names(dat_sim_mvt_info) <- as.character(seq_len(length(dat_sim_mvt_info)))
 
 #### Path sim (1)
 
@@ -217,9 +219,19 @@ sim_step_every_2_mins <- function(...,data = steps, size = 1) {
 prettyGraphics::pretty_hist(sim_step_every_2_mins(size = 1e3))
 
 ## Add details to list
-dat_sim_mvt_info[[1]]$sim_step_every_2_mins <- sim_step_every_2_mins
+# dat_sim_mvt_info[[1]]$sim_step_every_2_mins <- sim_step_every_2_mins
+# dat_sim_mvt_info[[1]]$seed <- seed
+# dat_sim_mvt_info[[1]]$name <- "dat_sim_path_1.rds"
+dat_sim_mvt_info <- lapply(seq_len(length(dat_sim_mvt_info)), function(i) {
+  elm <- dat_sim_mvt_info[[1]]
+  elm$sim_step_every_2_mins <- sim_step_every_2_mins
+  elm$seed <- i
+  elm$name <- paste0("dat_sim_path_", i, ".rds")
+  elm
+})
+names(dat_sim_mvt_info) <- as.character(seq_len(length(dat_sim_mvt_info)))
+# Reset seed for dat_sim_mvt_info[[1]] for backwards compatability
 dat_sim_mvt_info[[1]]$seed <- seed
-dat_sim_mvt_info[[1]]$name <- "dat_sim_path_1.rds"
 
 simulate_movement <- FALSE
 if(simulate_movement){
@@ -240,9 +252,23 @@ if(simulate_movement){
     points(p_1, col = "red")
 
     ## Simulate movement in area
+    box <- area
+    if (i > 1) {
+      # Note that area may be slightly larger than the grid
+      # This is fine for the original simulations.
+      # But for other seeds it is possible movements beyond the edge of the grid
+      # (but within area) are permitted. We need to prevent this, so for new
+      # simulations, we'll make sure the area is within the grid.
+      # For backwards compatability, we won't adjust the original simulation
+      # but we will modify the boundary slightly for subsequent simulations
+      # to ensure simulated movements are always on the grid.
+      box <- raster::crop(box, grid, snap = "in")
+      raster::plot(grid)
+      raster::lines(box, lwd = 3)
+    }
     dat_sim_path <- sim_path_sa(n = length(study_period),
                                 p_1 = p_1,
-                                area = area,
+                                area = box,
                                 sim_step = sim_step_every_2_mins,
                                 seed = seed)
 
@@ -295,6 +321,7 @@ simulate_archival <- FALSE
 if(simulate_archival){
   dat_sim_archival_by_path <- lapply(1:length(dat_sim_paths), function(path_id){
     # Get path
+    print(path_id)
     dat_sim_path <- dat_sim_paths[[path_id]]
     # Get depth corresponding to locations
     dat_sim_archival <- data.frame(indivdual_id = 1,
@@ -369,6 +396,24 @@ if(simulate_detections){
 ######################################
 ######################################
 #### Examine simulated data and emergent properties
+
+#### Identify simulations that failed to generate sufficient observations
+# We cannot implement sim_workhorse.R for these combinations of paths/arrays
+# We will skip them in sim_implement.R
+fails <-
+  lapply(seq_len(length(dat_sim_detections_by_path)), function(path_id) {
+  n_array <- length(dat_sim_arrays)
+  data.frame(path = rep(path_id, n_array),
+             array = seq_len(n_array),
+             obs = sapply(dat_sim_detections_by_path[[path_id]], function(x){
+               length(unique(x$timestamp))
+             })
+             )
+}) |>
+  dplyr::bind_rows() |>
+  dplyr::filter(obs < 5L)
+rownames(fails) <- NULL
+fails
 
 if (FALSE) {
 
@@ -560,9 +605,11 @@ alg_param <-
   dplyr::filter(!duplicated(id)) |>
   dplyr::mutate(index = dplyr::row_number()) |>
   dplyr::select(index, id, is_mpr, is_dpr, correct, detection_range, mobility, mobility_on_grid)
+# Optionally streamline (e.g., focus only on 'correct' implementations)
+alg_param <- alg_param[alg_param$correct == TRUE, , drop = FALSE]
 
 # Write tidy table
-if(do2d){
+if(FALSE & do2d){
   alg_param |>
     dplyr::slice(-1L) |>
     dplyr::mutate(ID = paste0("S3 (", index - 1, ")"),
