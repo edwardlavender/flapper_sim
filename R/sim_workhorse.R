@@ -120,7 +120,8 @@ if(!file.exists(detection_centroids_overlaps_file)){
   containers_dets <- get_detection_containers(xy = array$array$xy,
                                               detection_range = det_rng,
                                               boundaries = area,
-                                              byid = TRUE, resolution = 1000)
+                                              byid = TRUE, resolution = 1000,
+                                              plot = manual)
   containers_df <- moorings
   row.names(containers_df) <- names(containers_dets)
   containers_dets <- sp::SpatialPolygonsDataFrame(containers_dets, containers_df)
@@ -440,7 +441,7 @@ kud_size  <- 100L
 if(out_acpf_success){
   out_acpf_pou_file <- paste0(con_root, "acpf/out_acpf_pou.tif")
   if(!file.exists(out_acpf_pou_file)){
-    out_acpf_pou_raw  <- pf_plot_map(out_acpf_pairs_unq, grid, scale = "original")
+    out_acpf_pou_raw  <- pf_plot_map(out_acpf_pairs_unq, grid, scale = "original", plot = manual)
     out_acpf_pou      <- out_acpf_pou_raw/raster::cellStats(out_acpf_pou_raw, "max")
     raster::writeRaster(out_acpf_pou_raw, paste0(con_root, "acpf/out_acpf_pou_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acpf_pou, out_acpf_pou_file, overwrite = TRUE)
@@ -451,7 +452,7 @@ if(out_acpf_success){
 if(out_acdcpf_success){
   out_acdcpf_pou_file <- paste0(con_root, "acdcpf/out_acdcpf_pou.tif")
   if(!file.exists(out_acdcpf_pou_file)){
-    out_acdcpf_pou_raw  <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = "original")
+    out_acdcpf_pou_raw  <- pf_plot_map(out_acdcpf_pairs_unq, grid, scale = "original", plot = manual)
     out_acdcpf_pou      <- out_acdcpf_pou_raw/raster::cellStats(out_acdcpf_pou_raw, "max")
     raster::writeRaster(out_acdcpf_pou_raw, paste0(con_root, "acdcpf/out_acdcpf_pou_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acdcpf_pou, out_acdcpf_pou_file, overwrite = TRUE)
@@ -466,7 +467,8 @@ if(out_acpf_success){
   if(!file.exists(out_acpf_kud_file)){
     out_acpf_kud_raw   <- pf_kud(out_acpf_pou_raw,
                                  sample_size = kud_size,
-                                 grid = kud_grid)
+                                 grid = kud_grid,
+                                 plot = manual)
     out_acpf_kud   <- out_acpf_kud_raw/raster::cellStats(out_acpf_kud_raw, scale_kud)
     raster::writeRaster(out_acpf_kud_raw, paste0(con_root, "acpf/out_acpf_kud_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acpf_kud, out_acpf_kud_file, overwrite = TRUE)
@@ -479,7 +481,8 @@ if(out_acdcpf_success){
   if(!file.exists(out_acdcpf_kud_file)){
     out_acdcpf_kud_raw   <- pf_kud(out_acdcpf_pou_raw,
                                  sample_size = kud_size,
-                                 grid = kud_grid)
+                                 grid = kud_grid,
+                                 plot = manual)
     out_acdcpf_kud   <- out_acdcpf_kud_raw/raster::cellStats(out_acdcpf_kud_raw, scale_kud)
     raster::writeRaster(out_acdcpf_kud_raw, paste0(con_root, "acdcpf/out_acdcpf_kud_raw.tif"), overwrite = TRUE)
     raster::writeRaster(out_acdcpf_kud, out_acdcpf_kud_file, overwrite = TRUE)
