@@ -51,7 +51,7 @@ Simulations and analyses are written in `R` and organised as an `RStudio Project
     
     * `sim_illustrate.R` illustrates the main outputs of the `flapper` family of algorithms. 
     
-    * `sim_evaluate.R` evaluates the performance of the `flapper` family of algorithms, when applied 'correctly', in different array designs and `sim_evaluate_wall_time.R` calculates the wall time for these simulations. 
+    * `sim_evaluate.R` and `sim_evaluate_spatstat.R` evaluate the performance of the `flapper` family of algorithms, when applied 'correctly', in different array designs and `sim_evaluate_wall_time.R` calculates the wall time for the simulations. 
     
     * `sim_sensitivity.R` examines the sensitivity of the `flapper` algorithms applied using different parameter 'estimates'. 
 
@@ -69,7 +69,7 @@ Note that `data/` and `fig/` are not included in the online version of this repo
 
 3. Implement algorithms for a specific movement path, array and parameter set via `sim_workhorse.R` or for all movement paths, array designs and parameter sets via `sim_implement.R`*. Note that for the former, the movement path, array ID and parameter set need to be specified at the top of the script.
 
-4. Evaluate algorithm outputs when applied 'correctly' via `sim_illustrate.R`, `sim_evaluate.R` and `sim_evaluate_wall_time.R`. 
+4. Evaluate algorithm outputs when applied 'correctly' via `sim_illustrate.R`, `sim_evaluate.R`, `sim_evaluate_spatstat.R` and `sim_evaluate_wall_time.R`. 
 
 5. Examine algorithm sensitivity via `sim_sensitivity.R`. 
 

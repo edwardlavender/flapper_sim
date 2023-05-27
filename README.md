@@ -75,10 +75,11 @@ used on a few occasions.
     - `sim_illustrate.R` illustrates the main outputs of the `flapper`
       family of algorithms.
 
-    - `sim_evaluate.R` evaluates the performance of the `flapper` family
-      of algorithms, when applied ‘correctly’, in different array
-      designs and `sim_evaluate_wall_time.R` calculates the wall time
-      for these simulations.
+    - `sim_evaluate.R` and `sim_evaluate_spatstat.R` evaluate the
+      performance of the `flapper` family of algorithms, when applied
+      ‘correctly’, in different array designs and
+      `sim_evaluate_wall_time.R` calculates the wall time for the
+      simulations.
 
     - `sim_sensitivity.R` examines the sensitivity of the `flapper`
       algorithms applied using different parameter ‘estimates’.
@@ -105,7 +106,8 @@ this repository.
     specified at the top of the script.
 
 4.  Evaluate algorithm outputs when applied ‘correctly’ via
-    `sim_illustrate.R`, `sim_evaluate.R` and `sim_evaluate_wall_time.R`.
+    `sim_illustrate.R`, `sim_evaluate.R`, `sim_evaluate_spatstat.R` and
+    `sim_evaluate_wall_time.R`.
 
 5.  Examine algorithm sensitivity via `sim_sensitivity.R`.
 
