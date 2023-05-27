@@ -171,77 +171,11 @@ if(!file.exists(estimates_by_array_best_file)){
 
 ######################################
 ######################################
-#### Comparative metrics
-
-#### Calculate error statistics for the simulate path/algorithm reconstructions
-type <- "kud"
-stats <-
-  lapply(seq_len(length(estimates_by_array)), function(i){
-  e <- estimates_by_array[[i]]
-  elm <- e[[type]]
-  # sapply(elm, raster::cellStats, "sum")
-  lapply(c("coa", "acpf", "acdcpf"), function(alg){
-   # print(i); print(alg)
-    if (!is.null(elm[[alg]])) {
-      # MSE
-      mse <- raster::cellStats((elm$sim - elm[[alg]])^2, "mean")
-      # Steps in core/home range
-      steps <- e$path$xy_mat_on_grid_within_acoustics
-      quant <- spatialEco::raster.vol(terra::rast(elm[[alg]]), p = 0.95)
-      vals  <- raster::extract(quant, steps)
-      cov   <- length(which(!is.na(vals) & vals > 0))/nrow(steps)
-      } else {
-      mse <- NA
-      cov <- NA
-    }
-    data.frame(index = i, type = type, alg = alg, mse = mse, cov = cov)
-  }) |>
-    dplyr::bind_rows()
-}) |>
-  dplyr::bind_rows() |>
-  dplyr::group_by(index) |>
-  dplyr::arrange(mse, .by_group = TRUE) |>
-  dplyr::mutate(mse_rank = row_number(),
-                mse_pc = ((mse[1] - mse)/mse) * 100,
-                mse_pc = round(mse_pc, digits = 3)) |>
-  dplyr::arrange(desc(cov), .by_group = TRUE) |>
-  dplyr::mutate(cov_rank = dplyr::row_number()) |>
-  dplyr::select(index, type, alg, mse, mse_pc, mse_rank, cov, cov_rank) |>
-  dplyr::ungroup()
-
-# Count the number of times each algoritm is the 'best' according to MSE
-stats |>
-  dplyr::group_by(index) |>
-  dplyr::arrange(mse, .by_group = TRUE) |>
-  dplyr::slice(1L) |>
-  dplyr::pull(alg) |>
-  table()
-
-# Calculate the average algorithm rank (for MSE)
-stats |>
-  group_by(alg) |>
-  summarise(avg_rank = mean(mse_rank))
-
-# Check coverage
-# All algorithms contain all points on grid, at KUD resolution
-# But this changes as we decrease the contour size
-range(stats$cov, na.rm = TRUE)
-# Count the number of times each algoritm is the 'best' according to MSE
-stats |>
-  dplyr::group_by(index) |>
-  dplyr::arrange(cov, .by_group = TRUE) |>
-  dplyr::slice(1L) |>
-  dplyr::pull(alg) |>
-  table()
-
-
-######################################
-######################################
 #### Make plots
 
 #### Choose whether or not to plot POUs or KUDs
 type <- c("kud", "pou")
-type <- type[2]
+type <- type[1]
 
 #### Choose whether or not to focus on a small selection of arrays
 dat_sim_array_info_2 <- dat_sim_array_info
@@ -366,6 +300,7 @@ lapply(array_ids, function(array_id){
 
   #### Plot (2): path (between detections)
   rx <- white_out(estimates_for_array[[type]]$sim)
+  if (!is.null(rx)) stopifnot(all.equal(1, raster::cellStats(rx, "sum")))
   if(scale) rx <- scale_raster(rx, mx)
   map_param$add_rasters$x <- rx
   add_paths$x             <- path_for_array$xy_mat_on_grid_within_acoustics
@@ -383,6 +318,7 @@ lapply(array_ids, function(array_id){
   #### Plot (3): COA
   rr <- estimates_for_array[[type]]$coa
   rx <- white_out(rr)
+  if (!is.null(rx)) stopifnot(all.equal(1, raster::cellStats(rx, "sum")))
   if(scale) rx <- scale_raster(rx, mx)
   map_param$add_rasters$x <- rx
   if(is.null(map_param$add_rasters$x)) map_param$add_rasters <- NULL
@@ -403,6 +339,7 @@ lapply(array_ids, function(array_id){
   map_param$add_rasters$plot_method <- plot_raster_img
   rr <- estimates_for_array[[type]]$acpf
   rx <- white_out(rr)
+  if (!is.null(rx)) stopifnot(all.equal(1, raster::cellStats(rx, "sum")))
   if(scale) rx <- scale_raster(rx, mx)
   map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
@@ -418,6 +355,7 @@ lapply(array_ids, function(array_id){
   #### Plot (5): ACDCPF
   rr <- estimates_for_array[[type]]$acdcpf
   rx <- white_out(rr)
+  if (!is.null(rx))  stopifnot(all.equal(1, raster::cellStats(rx, "sum")))
   if(scale) rx <- scale_raster(rx, mx)
   map_param$add_rasters$x <- rx
   do.call(prettyGraphics::pretty_map, map_param)
