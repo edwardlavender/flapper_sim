@@ -13,9 +13,11 @@ Modelling, University of St Andrews, Scotland
 <sup>\*</sup> This repository is maintained by Edward Lavender
 (<el72@st-andrews.ac.uk>).
 
-[![Project Status: Active – The project has reached a stable, usable
-state and is being actively
-developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Project Status: Inactive – The project has reached a stable, usable
+state but is no longer being actively developed; support/maintenance
+will be provided as time
+allows.](https://www.repostatus.org/badges/latest/inactive.svg)](https://www.repostatus.org/#inactive)
+[![DOI](https://zenodo.org/badge/401989836.svg)](https://zenodo.org/badge/latestdoi/401989836)
 
 ## Introduction
 
@@ -143,5 +145,5 @@ available on [GitHub](https://github.com/) are also used:
 
 ## Citation
 
-Lavender et al. (in prep). A semi-stochastic modelling framework for
-passive acoustic telemetry.
+Lavender et al. (in press). A semi-stochastic modelling framework for
+passive acoustic telemetry. Methods in Ecology and Evolution.
